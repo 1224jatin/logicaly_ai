@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/views/profile/profile.dart';
 
 import '../doubt_camera_screen/doubt_camera_screen.dart';
 import '../flashcards/flash_card.dart';
@@ -17,12 +18,7 @@ class _ChatBot extends State<ChatBot>{
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-
-          // Bottom Navigation
-
-
-
-          body: SafeArea(
+      body: SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -32,9 +28,17 @@ class _ChatBot extends State<ChatBot>{
                   // Top Bar
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Icon(Icons.menu, size: 26),
-                      Icon(Icons.person_outline, size: 26),
+                    children: [
+                      const Icon(Icons.menu, size: 26),
+                      InkWell(
+                        child: const Icon(Icons.person_outline, size: 26),
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                               MaterialPageRoute(builder: (context) => Profile())
+                          );
+                        },
+                      )
                     ],
                   ),
 

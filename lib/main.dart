@@ -4,6 +4,8 @@ import 'package:logicaly_ai_project/views/auth/sign_up_screen.dart';
 import 'package:logicaly_ai_project/views/chat/chat_bot.dart';
 import 'package:logicaly_ai_project/views/doubt_camera_screen/doubt_camera_screen.dart';
 import 'package:logicaly_ai_project/views/flashcards/flash_card.dart';
+import 'package:logicaly_ai_project/views/flashcards/manual_flashcards.dart';
+import 'package:logicaly_ai_project/views/profile/profile.dart';
 import 'package:logicaly_ai_project/views/smart_Notes/smart_notes.dart';
 
 void main() {
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,      ),
-      home:  SignUpScreen(),
+      home:  ManualFlashcards(),
       debugShowCheckedModeBanner: false,
     );
   }

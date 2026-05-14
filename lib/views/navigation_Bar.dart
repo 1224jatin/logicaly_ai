@@ -13,7 +13,7 @@ class NavigationBarScreen extends StatefulWidget{
 }
 class _NavigationBarScreen extends State<NavigationBarScreen>{
   List navigationScreens =[SmartNotes(),DoubtCameraScreen(),ChatBot(),MockTestScreen(),FlashCard(),];
-  int seletedIndex = 0 ;
+  int seletedIndex = 2 ;
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/views/auth/login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -19,7 +20,7 @@ class _SignUpScreen extends State<SignUpScreen>{
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
               // Robot Logo
               Center(
@@ -34,7 +35,7 @@ class _SignUpScreen extends State<SignUpScreen>{
                 child: Column(
                   children: [
                     const Text(
-                      "Welcome Back",
+                      "Welcome",
                       style: TextStyle(
                         fontSize: 34,
                         fontWeight: FontWeight.bold,
@@ -42,10 +43,10 @@ class _SignUpScreen extends State<SignUpScreen>{
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 1),
 
                     const Text(
-                      "Login to continue your learning journey",
+                      "Signup to start your learning journey",
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -55,7 +56,7 @@ class _SignUpScreen extends State<SignUpScreen>{
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -67,7 +68,7 @@ class _SignUpScreen extends State<SignUpScreen>{
                 ),
               ),
               Container(
-                height: 50,
+                height: 40,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -92,6 +93,8 @@ class _SignUpScreen extends State<SignUpScreen>{
                   ],
                 ),
               ),
+              const SizedBox(height: 10),
+
 
               //-----------Emaill----------
                Align(
@@ -105,7 +108,6 @@ class _SignUpScreen extends State<SignUpScreen>{
                 ),
               ),
 
-              const SizedBox(height: 10),
 
               Container(
                 height: 50,
@@ -184,30 +186,7 @@ class _SignUpScreen extends State<SignUpScreen>{
               const SizedBox(height: 12),
 
               // Small Text
-              Align(
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    children: [
-                      const Text("Not have an account?" , style: TextStyle(
-                        color: Colors.black,
-                      ),),
-                      InkWell(
-                        child:  Text(
-                          " Sign up",
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 12,
-                          ),
-                        ),
-                        onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context)=> SignUpScreen()));
-                        },
 
-                      )
-
-                    ],
-                  )
-              ),
 
               const SizedBox(height: 35),
 
@@ -218,6 +197,7 @@ class _SignUpScreen extends State<SignUpScreen>{
                 child: ElevatedButton(
                   onPressed: () {
                     // ON press action here
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=>LoginScreen()));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3563E9),
