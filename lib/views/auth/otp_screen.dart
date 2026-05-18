@@ -4,6 +4,10 @@ import 'package:logicaly_ai_project/views/navigation_Bar.dart';
 import '../chat/chat_bot.dart';
 
 class OtpScreen extends StatefulWidget{
+  late String email;
+  OtpScreen({super.key , required this.email});
+
+
   @override
   State<StatefulWidget> createState() =>_OtpScreen();
 
@@ -29,9 +33,9 @@ class _OtpScreen extends State<OtpScreen>{
               const SizedBox(height: 30),
 
               // Title
-              const Text(
-                "Verify your number",
-                style: TextStyle(
+              Text(
+                "Verify your ${widget.email} Email",
+                style: const TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
@@ -51,7 +55,7 @@ class _OtpScreen extends State<OtpScreen>{
                   ),
                   children: [
                     TextSpan(
-                      text: "+91 ******080",
+                      text: "ab***12@gmail.com",
                       style: TextStyle(
                         color: Colors.blue,
                         fontWeight: FontWeight.w500,

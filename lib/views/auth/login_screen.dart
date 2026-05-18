@@ -158,6 +158,7 @@ class _LoginScreenState extends State<LoginScreen>{
                       color: Colors.black,
                     ),),
                     InkWell(
+                      // for signup
                       child:  Text(
                         " Sign up",
                         style: TextStyle(
@@ -184,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen>{
                 child: ElevatedButton(
                   onPressed: () {
                     // ON press action here
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=>OtpScreen()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=>OtpScreen(email: emailController.text,)));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3563E9),

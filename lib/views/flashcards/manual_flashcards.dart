@@ -7,15 +7,14 @@ class ManualFlashcards extends StatefulWidget{
 
 }
 class _ManualFlashcards extends State<ManualFlashcards>{
+  TextEditingController addQuestion = TextEditingController();
+  TextEditingController addAnswer = TextEditingController();
+
   int currentCard = 1;
 
-  final List<String> flashcards = [
-    "Glassmorphism is a UI style that looks like frosted glass—using transparent backgrounds, blur effects, and soft borders.",
+  final List<String> cardQuestion = [];
+  final List<String> cardAnswers = [];
 
-    "Flutter is an open-source UI toolkit developed by Google.",
-
-    "Provider is used for state management in Flutter apps.",
-  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,7 +23,8 @@ class _ManualFlashcards extends State<ManualFlashcards>{
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF5B82F7),
         onPressed: () {
-          //
+          // on pressed action
+
         },
 
         child: const Icon(
@@ -125,7 +125,7 @@ class _ManualFlashcards extends State<ManualFlashcards>{
                       Expanded(
                         child: Center(
                           child: Text(
-                            flashcards[currentCard - 1],
+                            cardQuestion[currentCard - 1],
                             textAlign: TextAlign.center,
 
                             style: const TextStyle(
@@ -143,7 +143,6 @@ class _ManualFlashcards extends State<ManualFlashcards>{
                         MainAxisAlignment.center,
 
                         children: const [
-
                           Icon(
                             Icons.close,
                             color: Colors.red,
@@ -151,7 +150,6 @@ class _ManualFlashcards extends State<ManualFlashcards>{
                           ),
 
                           SizedBox(width: 80),
-
                           Icon(
                             Icons.check,
                             color: Colors.green,
@@ -173,14 +171,11 @@ class _ManualFlashcards extends State<ManualFlashcards>{
               Row(
                 mainAxisAlignment:
                 MainAxisAlignment.spaceBetween,
-
                 children: [
-
                   // Previous Button
                   SizedBox(
                     width: 140,
                     height: 56,
-
                     child: OutlinedButton.icon(
                       onPressed: () {
                         if (currentCard > 1) {
@@ -222,7 +217,7 @@ class _ManualFlashcards extends State<ManualFlashcards>{
                     child: OutlinedButton(
                       onPressed: () {
                         if (currentCard <
-                            flashcards.length) {
+                            cardQuestion.length) {
                           setState(() {
                             currentCard++;
                           });
@@ -270,6 +265,43 @@ class _ManualFlashcards extends State<ManualFlashcards>{
           ),
         ),
       ),
+    );
+  }
+  void showDialoge(){
+    AlertDialog(
+      title: const Text("Add Flashcard"),
+      content: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TextField(
+            controller: addQuestion,
+            decoration: InputDecoration(
+              label: const Text("Qusetion"),
+            ),
+          ),
+          TextField(
+            controller: addAnswer,
+            decoration: InputDecoration(
+              label: const Text("Ans"),
+            ),
+          ),
+        ],
+      )  ,
+      actions: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(onPressed: (){
+              return null ;
+
+            }, child: Text("Cancel")),
+            ElevatedButton(onPressed: (){
+
+
+            }, child: Text("Add")),
+          ],
+        )
+      ],
     );
   }
 

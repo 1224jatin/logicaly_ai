@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/views/flashcards/manual_flashcards.dart';
 
 class FlashCard extends StatefulWidget {
   @override
@@ -111,6 +112,7 @@ class _FlashCard extends State<FlashCard>{
                     subtitle: "Create your own flashcards",
                   ),onTap: (){
                     //DIALOGUE BOX HERE
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=> ManualFlashcards()));
 
 
                   },),
