@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/views/navigation_Bar.dart';
 
+import '../../services/auth_services.dart';
 import '../chat/chat_bot.dart';
 
 class OtpScreen extends StatefulWidget{
-  late String email;
-  OtpScreen({super.key , required this.email});
+  late  String sentOtp;
+  OtpScreen({super.key , required this.sentOtp});
 
 
   @override
@@ -13,6 +14,13 @@ class OtpScreen extends StatefulWidget{
 
 }
 class _OtpScreen extends State<OtpScreen>{
+  late String _otp ;
+
+  TextEditingController firstAlphabet = TextEditingController();
+  TextEditingController secondAlphabet = TextEditingController();
+  TextEditingController thirdAlphabet = TextEditingController();
+  TextEditingController fourthAlphabet = TextEditingController();
+  TextEditingController fifthAlphabet = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,7 +42,7 @@ class _OtpScreen extends State<OtpScreen>{
 
               // Title
               Text(
-                "Verify your ${widget.email} Email",
+                "Verify your ${""} Email",
                 style: const TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -84,36 +92,135 @@ class _OtpScreen extends State<OtpScreen>{
               // OTP Boxes
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(
-                  5,
-                      (index) => SizedBox(
-                    width: 50,
-                    height: 55,
-                    child: TextField(
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      decoration: InputDecoration(
-                        counterText: "",
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.zero,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: Colors.grey.shade300,
-                          ),
+                children: [
+                  // First
+                TextField(
+                  controller: firstAlphabet,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                maxLength: 1,
+                decoration: InputDecoration(
+                  counterText: "",
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: EdgeInsets.zero,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade300,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade300,
+                    ),
+                  ),
+                ),
+               ),
+                  // Second
+                  TextField(
+                    controller: secondAlphabet,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: 1,
+                    decoration: InputDecoration(
+                      counterText: "",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: Colors.grey.shade300,
-                          ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
                         ),
                       ),
                     ),
                   ),
-                ),
+                // third letter
+
+                  TextField(
+                    controller: thirdAlphabet,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: 1,
+                    decoration: InputDecoration(
+                      counterText: "",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                        ),
+                      ),
+                    ),
+                  ),
+                  //forth
+
+                  TextField(
+                    controller: fourthAlphabet,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: 1,
+                    decoration: InputDecoration(
+                      counterText: "",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                        ),
+                      ),
+                    ),
+                  ),
+                  //fifth
+                  TextField(
+                    controller: firstAlphabet,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: 1,
+                    decoration: InputDecoration(
+                      counterText: "",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey.shade300,
+                        ),
+                      ),
+                    ),
+                  ),
+                ]
               ),
 
               const SizedBox(height: 15),
@@ -138,8 +245,12 @@ class _OtpScreen extends State<OtpScreen>{
                 height: 58,
                 child: ElevatedButton(
                   onPressed: () {
+                    final _otp = firstAlphabet.text + secondAlphabet.text +
+                        thirdAlphabet.text + fourthAlphabet.text +
+                        fifthAlphabet.text;
+                    OtpServices().verifyOtp(_otp, OtpServices().generateOtp());
                     // onpressed logic
-                    Navigator.push(context, MaterialPageRoute(builder: (context)=>NavigationBarScreen()));
+                   // Navigator.push(context, MaterialPageRoute(builder: (context)=>NavigationBarScreen()));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3563E9),
