@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/views/auth/login_screen.dart';
+import 'package:logicaly_ai_project/views/auth/otp_screen.dart';
 import 'package:logicaly_ai_project/views/auth/sign_up_screen.dart';
 import 'package:logicaly_ai_project/views/chat/chat_bot.dart';
 import 'package:logicaly_ai_project/views/doubt_camera_screen/doubt_camera_screen.dart';
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,      ),
-      home:  SignUpScreen(),
+      home:  OtpScreen(sentOtp: '',),
       debugShowCheckedModeBanner: false,
     );
   }
