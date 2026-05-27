@@ -1,324 +1,362 @@
-import 'package:flutter/cupertino.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/models/profile_model.dart';
+import 'package:logicaly_ai_project/services/auth_services.dart';
+import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/views/auth/login_screen.dart';
 
-class Profile extends StatefulWidget{
+class Profile extends StatefulWidget {
+  const Profile({super.key});
+
   @override
   State<StatefulWidget> createState() => _Profile();
-
 }
-class _Profile extends State<Profile>{
+
+class _Profile extends State<Profile> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
+          child: StreamBuilder<ProfileModel?>(
+            stream: _firestoreService.currentProfileStream(),
+            builder: (context, snapshot) {
+              final user = FirebaseAuth.instance.currentUser;
+              final profile = snapshot.data;
+              final name = profile?.name.isNotEmpty == true
+                  ? profile!.name
+                  : user?.displayName ?? "Student";
+              final email = profile?.email.isNotEmpty == true
+                  ? profile!.email
+                  : user?.email ?? "";
+              final dailyGoal = profile?.dailyGoalMinutes ?? 30;
+              final completed = profile?.completedMinutes ?? 0;
+              final streak = profile?.streakDays ?? 0;
+              final testsTaken = profile?.testsTaken ?? 0;
+              final studyHours = profile?.studyHours ?? 0;
+              final progress = dailyGoal == 0
+                  ? 0.0
+                  : (completed / dailyGoal).clamp(0.0, 1.0).toDouble();
 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-
-              const SizedBox(height: 10),
-
-              // ================= TITLE =================
-
-              const Text(
-                "Profile",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ================= PROFILE CARD =================
-
-              Container(
-                padding: const EdgeInsets.all(16),
-
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-
-                child: Row(
-                  children: [
-
-                    // Profile Image
-                    const CircleAvatar(
-                      radius: 34,
-                      backgroundImage: NetworkImage(
-                        "https://i.pravatar.cc/300",
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Profile",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    // User Info
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
-
+                      IconButton(
+                        onPressed: _logout,
+                        icon: const Icon(Icons.logout),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildProfileCard(name, email),
+                  const SizedBox(height: 26),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Your Progress",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Row(
                         children: [
-
                           Text(
-                            "Student",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          SizedBox(height: 6),
-
-                          Text(
-                            "Student@gmail.com",
-                            style: TextStyle(
+                            "$streak Days Streak",
+                            style: const TextStyle(
                               color: Colors.black54,
                               fontSize: 14,
                             ),
                           ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.local_fire_department,
+                            color: Colors.red,
+                            size: 20,
+                          ),
                         ],
-                      ),
-                    ),
-
-                    // Edit Icon
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 26),
-
-              // ================= PROGRESS TITLE =================
-
-              Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-
-                children: const [
-
-                  Text(
-                    "Your Progress",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  Row(
-                    children: [
-
-                      Text(
-                        "4 Days Streak",
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      SizedBox(width: 4),
-
-                      Icon(
-                        Icons.local_fire_department,
-                        color: Colors.red,
-                        size: 20,
                       ),
                     ],
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // ================= DAILY GOAL ROW =================
-
-              Row(
-                children: [
-
-                  const Expanded(
-                    child: Text(
-                      "Set your daily study goal",
-                      style: TextStyle(
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-
-                  // Time Box
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                      BorderRadius.circular(10),
-                    ),
-
-                    child: const Text(
-                      "30 Min",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.edit_outlined,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // ================= DAILY GOAL CARD =================
-
-              Container(
-                padding: const EdgeInsets.all(16),
-
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-
-                child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-                  children: [
-
-                    // Title
-                    Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-
-                      children: const [
-
-                        Text(
-                          "Daily Goal",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  const SizedBox(height: 20),
+                  _buildGoalEditor(dailyGoal),
+                  const SizedBox(height: 20),
+                  _buildDailyGoalCard(progress, completed, dailyGoal),
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: buildStatCard(
+                          icon: Icons.auto_awesome,
+                          iconColor: Colors.purple,
+                          value: "$testsTaken",
+                          label: "Test Taken",
                         ),
-
-                        Icon(
-                          Icons.track_changes,
-                          color: Colors.blue,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: buildStatCard(
+                          icon: Icons.access_time,
+                          iconColor: Colors.blue,
+                          value: "${studyHours}h",
+                          label: "Time Spent",
                         ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Progress Bar
-                    ClipRRect(
-                      borderRadius:
-                      BorderRadius.circular(10),
-
-                      child: LinearProgressIndicator(
-                        value: 0.6,
-                        minHeight: 8,
-                        backgroundColor:
-                        Colors.grey.shade300,
-                        color: Colors.blue,
                       ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    const Text(
-                      "20/30 Minutes Completed",
-                      style: TextStyle(
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 22),
-
-              // ================= STATS =================
-
-              Row(
-                children: [
-
-                  // Test Taken
-                  Expanded(
-                    child: buildStatCard(
-                      icon: Icons.auto_awesome,
-                      iconColor: Colors.purple,
-                      value: "12",
-                      label: "Test Taken",
-                    ),
+                    ],
                   ),
-
-                  const SizedBox(width: 14),
-
-                  // Time Spent
-                  Expanded(
-                    child: buildStatCard(
-                      icon: Icons.access_time,
-                      iconColor: Colors.blue,
-                      value: "14h",
-                      label: "Time Spent",
-                    ),
+                  const SizedBox(height: 28),
+                  const Text(
+                    "Recent Activity",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
+                  const SizedBox(height: 18),
+                  _buildRecentActivity(),
+                  const SizedBox(height: 20),
                 ],
-              ),
-
-              const SizedBox(height: 28),
-
-              // ================= RECENT ACTIVITY =================
-
-              const Text(
-                "Recent Activity",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Activity 1
-              buildActivityCard(
-                title: "UX/UI Flashcards",
-                subtitle: "1 hour ago",
-              ),
-
-              const SizedBox(height: 14),
-
-              // Activity 2
-              buildActivityCard(
-                title: "Mock Test: DSA",
-                subtitle: "2 hours ago",
-              ),
-
-              const SizedBox(height: 20),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  // ================= STAT CARD =================
+  Widget _buildProfileCard(String name, String email) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 34,
+            backgroundImage: NetworkImage("https://i.pravatar.cc/300"),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  email,
+                  style: const TextStyle(color: Colors.black54, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _editName(name),
+            icon: const Icon(Icons.edit_outlined),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalEditor(int dailyGoal) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            "Set your daily study goal",
+            style: TextStyle(fontSize: 15),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            "$dailyGoal Min",
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        IconButton(
+          onPressed: () => _editDailyGoal(dailyGoal),
+          icon: const Icon(Icons.edit_outlined),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDailyGoalCard(double progress, int completed, int dailyGoal) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Daily Goal",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Icon(Icons.track_changes, color: Colors.blue),
+            ],
+          ),
+          const SizedBox(height: 18),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.grey.shade300,
+              color: Colors.blue,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "$completed/$dailyGoal Minutes Completed",
+            style: const TextStyle(color: Colors.black54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActivity() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _firestoreService.activityStream(),
+      builder: (context, snapshot) {
+        final activities = snapshot.data ?? [];
+        if (activities.isEmpty) {
+          return buildActivityCard(
+            title: "No recent activity",
+            subtitle: "Start learning to build your timeline",
+          );
+        }
+
+        return Column(
+          children: activities.map((activity) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: buildActivityCard(
+                title: activity["title"] as String? ?? "Activity",
+                subtitle: activity["subtitle"] as String? ?? "Just now",
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Future<void> _editName(String currentName) async {
+    final controller = TextEditingController(text: currentName);
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Edit Name"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(label: Text("Name")),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) {
+                return;
+              }
+              await FirebaseAuth.instance.currentUser?.updateDisplayName(name);
+              await _firestoreService.updateCurrentProfile({"name": name});
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+  }
+
+  Future<void> _editDailyGoal(int currentGoal) async {
+    final controller = TextEditingController(text: currentGoal.toString());
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Daily Goal"),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(label: Text("Minutes")),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final minutes = int.tryParse(controller.text.trim());
+              if (minutes == null || minutes <= 0) {
+                return;
+              }
+              await _firestoreService.updateCurrentProfile({
+                "dailyGoalMinutes": minutes,
+              });
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+  }
+
+  Future<void> _logout() async {
+    await AuthService().signOut();
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  }
 
   Widget buildStatCard({
     required IconData icon,
@@ -328,85 +366,51 @@ class _Profile extends State<Profile>{
   }) {
     return Container(
       padding: const EdgeInsets.all(18),
-
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-
         children: [
-
-          Icon(
-            icon,
-            color: iconColor,
-          ),
-
+          Icon(icon, color: iconColor),
           const SizedBox(height: 12),
-
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.black54,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.black54, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  // ================= ACTIVITY CARD =================
-
-  Widget buildActivityCard({
-    required String title,
-    required String subtitle,
-  }) {
+  Widget buildActivityCard({required String title, required String subtitle}) {
     return Container(
       padding: const EdgeInsets.all(16),
-
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
-
       child: Row(
         children: [
-
           Container(
             padding: const EdgeInsets.all(10),
-
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(10),
             ),
-
-            child: const Icon(
-              Icons.menu_book_outlined,
-            ),
+            child: const Icon(Icons.menu_book_outlined),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
-
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Text(
                   title,
                   style: const TextStyle(
@@ -414,28 +418,17 @@ class _Profile extends State<Profile>{
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
               ],
             ),
           ),
-
-          const Icon(
-            Icons.arrow_forward_ios,
-            size: 18,
-            color: Colors.black54,
-          ),
+          const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black54),
         ],
       ),
     );
   }
-
 }

@@ -1,310 +1,337 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:logicaly_ai_project/views/navigation_Bar.dart';
+import 'package:flutter/services.dart';
+import 'package:logicaly_ai_project/views/navigation_bar.dart';
 
 import '../../services/auth_services.dart';
-import '../chat/chat_bot.dart';
 
-class OtpScreen extends StatefulWidget{
-  late  String sentOtp;
-  OtpScreen({super.key , required this.sentOtp});
+class OtpScreen extends StatefulWidget {
+  final String sentOtp;
+  final String? userName;
+  final String? email;
+  final String? password;
 
+  const OtpScreen({
+    super.key,
+    required this.sentOtp,
+    this.userName,
+    this.email,
+    this.password,
+  });
 
   @override
-  State<StatefulWidget> createState() =>_OtpScreen();
-
+  State<StatefulWidget> createState() => _OtpScreen();
 }
-class _OtpScreen extends State<OtpScreen>{
-  late String _otp ;
 
-  TextEditingController firstAlphabet = TextEditingController();
-  TextEditingController secondAlphabet = TextEditingController();
-  TextEditingController thirdAlphabet = TextEditingController();
-  TextEditingController fourthAlphabet = TextEditingController();
-  TextEditingController fifthAlphabet = TextEditingController();
+class _OtpScreen extends State<OtpScreen> {
+  final List<TextEditingController> _controllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
+    for (final focusNode in _focusNodes) {
+      focusNode.dispose();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 70),
-
-              // Robot Image
-              Center(
-                child: Image.asset("assets/images/logo/logicaly_icon_logo_.png" ,
-                height: 160,)
-              ),
-
-              const SizedBox(height: 30),
-
-              // Title
-              Text(
-                "Verify your ${""} Email",
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // Subtitle
-              RichText(
-                textAlign: TextAlign.center,
-                text: const TextSpan(
-                  text: "We sent a 4-digit OTP to ",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: "ab***12@gmail.com",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // Enter OTP Label
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Enter OTP",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 15),
-
-              // OTP Boxes
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // First
-                TextField(
-                  controller: firstAlphabet,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                maxLength: 1,
-                decoration: InputDecoration(
-                  counterText: "",
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: EdgeInsets.zero,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                      color: Colors.grey.shade300,
+                  const SizedBox(height: 28),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      onPressed: () => Navigator.maybePop(context),
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
                     ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(
-                      color: Colors.grey.shade300,
+
+                  const SizedBox(height: 18),
+
+                  Center(
+                    child: Image.asset(
+                      "assets/images/logo/logicaly_icon_logo_.png",
+                      height: 150,
                     ),
                   ),
-                ),
-               ),
-                  // Second
-                  TextField(
-                    controller: secondAlphabet,
+
+                  const SizedBox(height: 28),
+
+                  const Text(
+                    "Verify Your Email",
                     textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    decoration: InputDecoration(
-                      counterText: "",
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.zero,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                    ),
-                  ),
-                // third letter
-
-                  TextField(
-                    controller: thirdAlphabet,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    decoration: InputDecoration(
-                      counterText: "",
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.zero,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                    ),
-                  ),
-                  //forth
-
-                  TextField(
-                    controller: fourthAlphabet,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    decoration: InputDecoration(
-                      counterText: "",
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.zero,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                    ),
-                  ),
-                  //fifth
-                  TextField(
-                    controller: firstAlphabet,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    decoration: InputDecoration(
-                      counterText: "",
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: EdgeInsets.zero,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                    ),
-                  ),
-                ]
-              ),
-
-              const SizedBox(height: 15),
-
-              // Small Text
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "We'll send a one-time password to verify",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 35),
-
-              // Verify Button
-              SizedBox(
-                width: double.infinity,
-                height: 58,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final _otp = firstAlphabet.text + secondAlphabet.text +
-                        thirdAlphabet.text + fourthAlphabet.text +
-                        fifthAlphabet.text;
-                    OtpServices().verifyOtp(_otp, OtpServices().generateOtp());
-                    // onpressed logic
-                   // Navigator.push(context, MaterialPageRoute(builder: (context)=>NavigationBarScreen()));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3563E9),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    "Verify OTP",
                     style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 25),
+                  const SizedBox(height: 10),
 
-              // Resend Timer
-              const Text(
-                "Resend OTP in 04:35",
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Resend Text
-              RichText(
-                text: const TextSpan(
-                  text: "Didn't receive the OTP? ",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 13,
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      text: "We sent a 4-digit OTP to ",
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                      children: [
+                        TextSpan(
+                          text: _maskedEmail,
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  children: [
-                    TextSpan(
-                      text: "Resend",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 40),
+
+                  const Text(
+                    "Enter OTP",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final fieldWidth = ((constraints.maxWidth - 36) / 4)
+                          .clamp(44.0, 64.0);
+
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(
+                          _controllers.length,
+                          (index) => _OtpDigitField(
+                            width: fieldWidth,
+                            controller: _controllers[index],
+                            focusNode: _focusNodes[index],
+                            onChanged: (value) =>
+                                _handleDigitChange(value, index),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  const Text(
+                    "We'll send a one-time password to verify",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+
+                  const SizedBox(height: 35),
+
+                  SizedBox(
+                    height: 58,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _verifyOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3563E9),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        _isLoading ? "Verifying..." : "Verify OTP",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  const Text(
+                    "Resend OTP in 04:35",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: const TextSpan(
+                      text: "Didn't receive the OTP? ",
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                      children: [
+                        TextSpan(
+                          text: "Resend",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  void _handleDigitChange(String value, int index) {
+    if (value.isNotEmpty && index < _focusNodes.length - 1) {
+      _focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    final enteredOtp = _controllers.map((controller) => controller.text).join();
+    final isVerified = OtpServices().verifyOtp(widget.sentOtp, enteredOtp);
+
+    if (!isVerified && widget.sentOtp.isNotEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      if (widget.email != null &&
+          widget.password != null &&
+          widget.userName != null) {
+        await AuthService().signUp(
+          userName: widget.userName!,
+          email: widget.email!,
+          password: widget.password!,
+        );
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const NavigationBarScreen()),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_authErrorMessage(error))));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String get _maskedEmail {
+    final email = widget.email;
+    if (email == null || email.isEmpty || !email.contains("@")) {
+      return "your email";
+    }
+
+    final parts = email.split("@");
+    final name = parts.first;
+    final domain = parts.last;
+    final visible = name.length <= 2 ? name : name.substring(0, 2);
+    return "$visible***@$domain";
+  }
+
+  String _authErrorMessage(Object error) {
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'email-already-in-use':
+          return "This email is already registered";
+        case 'invalid-email':
+          return "Please enter a valid email address";
+        case 'weak-password':
+          return "Password is too weak";
+        case 'operation-not-allowed':
+          return "Email/Password sign up is not enabled in Firebase";
+        case 'configuration-not-found':
+          return "Firebase configuration error. Check reCAPTCHA settings in console.";
+        default:
+          return error.message ?? "An error occurred";
+      }
+    }
+    return "Could not create account. Please try again.";
+  }
+}
+
+class _OtpDigitField extends StatelessWidget {
+  final double width;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueChanged<String> onChanged;
+
+  const _OtpDigitField({
+    required this.width,
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 58,
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        maxLength: 1,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          counterText: "",
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.zero,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF3563E9), width: 1.4),
+          ),
+        ),
+        onChanged: onChanged,
+      ),
+    );
+  }
 }

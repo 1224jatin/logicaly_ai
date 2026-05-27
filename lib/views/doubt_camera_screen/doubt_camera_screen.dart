@@ -1,12 +1,13 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class DoubtCameraScreen extends StatefulWidget{
+class DoubtCameraScreen extends StatefulWidget {
+  const DoubtCameraScreen({super.key});
+
   @override
   State<StatefulWidget> createState() => _DoubtCameraScreen();
-
 }
-class _DoubtCameraScreen extends State<DoubtCameraScreen>{
+
+class _DoubtCameraScreen extends State<DoubtCameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -14,17 +15,12 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>{
       body: SafeArea(
         child: Column(
           children: [
-
             // Top Bar
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
 
               child: Row(
                 children: const [
-
                   Text(
                     "Doubt-Scanner",
                     style: TextStyle(
@@ -44,7 +40,6 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>{
 
                 child: Stack(
                   children: [
-
                     // Camera Image
                     Container(
                       width: double.infinity,
@@ -68,7 +63,6 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>{
 
                       child: Column(
                         children: [
-
                           buildCameraIcon(Icons.flash_on),
 
                           const SizedBox(height: 18),
@@ -103,10 +97,7 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>{
 
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 6,
-                            ),
+                            border: Border.all(color: Colors.white, width: 6),
                           ),
 
                           child: Center(
@@ -142,16 +133,11 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>{
       padding: const EdgeInsets.all(6),
 
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withValues(alpha: 0.4),
         shape: BoxShape.circle,
       ),
 
-      child: Icon(
-        icon,
-        color: Colors.white,
-        size: 20,
-      ),
+      child: Icon(icon, color: Colors.white, size: 20),
     );
   }
-
 }

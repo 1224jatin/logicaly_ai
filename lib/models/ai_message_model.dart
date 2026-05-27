@@ -1,4 +1,3 @@
-
 class AiMessageModel {
   late String messageId;
   late String senderId;
@@ -9,18 +8,19 @@ class AiMessageModel {
     required this.messageId,
     required this.senderId,
     required this.receiverId,
-    required this.message
+    required this.message,
   });
 
-  Map<String,dynamic> tojson(){
+  Map<String, dynamic> tojson() {
     return {
-      "messageId" : messageId,
-      "senderId" : senderId,
-      "receiverId" : receiverId,
-      "message" : message,
+      "messageId": messageId,
+      "senderId": senderId,
+      "receiverId": receiverId,
+      "message": message,
     };
   }
-  factory AiMessageModel.fromJson(Map<String,dynamic> json){
+
+  factory AiMessageModel.fromJson(Map<String, dynamic> json) {
     return AiMessageModel(
       messageId: json['messageId'] as String,
       senderId: json['senderId'] as String,

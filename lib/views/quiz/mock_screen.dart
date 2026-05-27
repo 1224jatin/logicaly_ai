@@ -1,17 +1,31 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:logicaly_ai_project/models/quizz_model.dart';
+import 'package:logicaly_ai_project/services/fire_store_services.dart';
 
-class MockTestScreen extends StatefulWidget{
+class MockTestScreen extends StatefulWidget {
+  const MockTestScreen({super.key});
+
   @override
   State<StatefulWidget> createState() => _MockTestScreen();
-
 }
-class _MockTestScreen extends State<MockTestScreen>{
+
+class _MockTestScreen extends State<MockTestScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+  final TextEditingController _syllabusController = TextEditingController();
+
   String difficulty = "Medium";
   String testType = "MCQ+Coding";
   String duration = "60 Min";
 
   bool focusWeakAreas = true;
+
+  @override
+  void dispose() {
+    _syllabusController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,28 +39,21 @@ class _MockTestScreen extends State<MockTestScreen>{
             crossAxisAlignment: CrossAxisAlignment.start,
 
             children: [
-
               const SizedBox(height: 10),
 
               // ================= TITLE =================
-
               const Text(
                 "Mock Test",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 30),
 
               // ================= TOP SECTION =================
-
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
 
                 children: [
-
                   const Expanded(
                     child: Text(
                       "Lets Create Your\nPersonalized Test",
@@ -82,13 +89,9 @@ class _MockTestScreen extends State<MockTestScreen>{
               const SizedBox(height: 30),
 
               // ================= SYLLABUS SECTION =================
-
               const Text(
                 "Add your Syllabus/Notes/Topics",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
 
               const SizedBox(height: 14),
@@ -99,14 +102,11 @@ class _MockTestScreen extends State<MockTestScreen>{
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.grey.shade300,
-                  ),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
 
                 child: Column(
                   children: [
-
                     // Upload PDF
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -121,25 +121,17 @@ class _MockTestScreen extends State<MockTestScreen>{
 
                       child: Row(
                         children: [
-
-                          const Icon(
-                            Icons.upload_file,
-                            color: Colors.blue,
-                          ),
+                          const Icon(Icons.upload_file, color: Colors.blue),
 
                           const SizedBox(width: 10),
 
                           Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
 
                             children: const [
-
                               Text(
                                 "Upload File",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
 
                               SizedBox(height: 3),
@@ -162,12 +154,10 @@ class _MockTestScreen extends State<MockTestScreen>{
                     // Divider
                     Row(
                       children: const [
-
                         Expanded(child: Divider()),
 
                         Padding(
-                          padding:
-                          EdgeInsets.symmetric(horizontal: 10),
+                          padding: EdgeInsets.symmetric(horizontal: 10),
                           child: Text("or"),
                         ),
 
@@ -179,15 +169,15 @@ class _MockTestScreen extends State<MockTestScreen>{
 
                     // Text Area
                     TextField(
+                      controller: _syllabusController,
                       maxLines: 5,
 
                       decoration: InputDecoration(
                         hintText:
-                        "e.g. Binary Search, Trees, DBMS Normalization,\nOperating System...",
+                            "e.g. Binary Search, Trees, DBMS Normalization,\nOperating System...",
 
                         border: OutlineInputBorder(
-                          borderRadius:
-                          BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -198,30 +188,24 @@ class _MockTestScreen extends State<MockTestScreen>{
               const SizedBox(height: 22),
 
               // ================= NEW BUTTON =================
-
               SizedBox(
                 width: 140,
                 height: 50,
 
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: _clearTestInput,
 
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                    const Color(0xFF3563E9),
+                    backgroundColor: const Color(0xFF3563E9),
 
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                      BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
 
                   child: const Text(
                     "NEW",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               ),
@@ -229,13 +213,9 @@ class _MockTestScreen extends State<MockTestScreen>{
               const SizedBox(height: 28),
 
               // ================= TEST PREFERENCES =================
-
               const Text(
                 "Test Preferences",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 16),
@@ -250,18 +230,13 @@ class _MockTestScreen extends State<MockTestScreen>{
 
                 child: Column(
                   children: [
-
                     // Difficulty
                     buildDropdownRow(
                       icon: Icons.bar_chart,
                       iconColor: Colors.purple,
                       title: "Difficulty Level",
                       value: difficulty,
-                      items: [
-                        "Easy",
-                        "Medium",
-                        "Hard",
-                      ],
+                      items: ["Easy", "Medium", "Hard"],
                       onChanged: (value) {
                         setState(() {
                           difficulty = value!;
@@ -277,11 +252,7 @@ class _MockTestScreen extends State<MockTestScreen>{
                       iconColor: Colors.red,
                       title: "Test Type",
                       value: testType,
-                      items: [
-                        "MCQ",
-                        "Coding",
-                        "MCQ+Coding",
-                      ],
+                      items: ["MCQ", "Coding", "MCQ+Coding"],
                       onChanged: (value) {
                         setState(() {
                           testType = value!;
@@ -297,11 +268,7 @@ class _MockTestScreen extends State<MockTestScreen>{
                       iconColor: Colors.blue,
                       title: "Duration",
                       value: duration,
-                      items: [
-                        "30 Min",
-                        "60 Min",
-                        "90 Min",
-                      ],
+                      items: ["30 Min", "60 Min", "90 Min"],
                       onChanged: (value) {
                         setState(() {
                           duration = value!;
@@ -317,33 +284,23 @@ class _MockTestScreen extends State<MockTestScreen>{
 
                       decoration: BoxDecoration(
                         color: const Color(0xFFF7F9FC),
-                        borderRadius:
-                        BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(14),
                       ),
 
                       child: Row(
                         children: [
-
-                          const Icon(
-                            Icons.auto_awesome,
-                            color: Colors.indigo,
-                          ),
+                          const Icon(Icons.auto_awesome, color: Colors.indigo),
 
                           const SizedBox(width: 12),
 
                           const Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
 
                               children: [
-
                                 Text(
                                   "Focus on my weak area",
-                                  style: TextStyle(
-                                    fontWeight:
-                                    FontWeight.bold,
-                                  ),
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
 
                                 SizedBox(height: 4),
@@ -377,35 +334,26 @@ class _MockTestScreen extends State<MockTestScreen>{
               const SizedBox(height: 24),
 
               // ================= GENERATE BUTTON =================
-
               SizedBox(
                 width: double.infinity,
                 height: 56,
 
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _generateTest,
 
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                    const Color(0xFF3563E9),
+                    backgroundColor: const Color(0xFF3563E9),
 
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                      BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
 
-                  icon: const Icon(
-                    Icons.auto_awesome,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.auto_awesome, color: Colors.white),
 
                   label: const Text(
                     "Generate My Test",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ),
               ),
@@ -413,7 +361,6 @@ class _MockTestScreen extends State<MockTestScreen>{
               const SizedBox(height: 16),
 
               // ================= QUICK TEST =================
-
               Container(
                 padding: const EdgeInsets.all(16),
 
@@ -424,11 +371,7 @@ class _MockTestScreen extends State<MockTestScreen>{
 
                 child: Row(
                   children: [
-
-                    const Icon(
-                      Icons.flash_on,
-                      color: Colors.orange,
-                    ),
+                    const Icon(Icons.flash_on, color: Colors.orange),
 
                     const SizedBox(width: 10),
 
@@ -441,12 +384,10 @@ class _MockTestScreen extends State<MockTestScreen>{
                         ),
                         children: [
                           TextSpan(
-                            text:
-                            "→ Generate a random test",
+                            text: "→ Generate a random test",
                             style: TextStyle(
                               color: Colors.black54,
-                              fontWeight:
-                              FontWeight.normal,
+                              fontWeight: FontWeight.normal,
                             ),
                           ),
                         ],
@@ -476,32 +417,17 @@ class _MockTestScreen extends State<MockTestScreen>{
   }) {
     return Row(
       children: [
-
-        Icon(
-          icon,
-          color: iconColor,
-        ),
+        Icon(icon, color: iconColor),
 
         const SizedBox(width: 12),
 
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-            ),
-          ),
-        ),
+        Expanded(child: Text(title, style: const TextStyle(fontSize: 16))),
 
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
 
           decoration: BoxDecoration(
-            border: Border.all(
-              color: Colors.grey.shade300,
-            ),
+            border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(10),
           ),
 
@@ -510,10 +436,7 @@ class _MockTestScreen extends State<MockTestScreen>{
             underline: const SizedBox(),
 
             items: items.map((item) {
-              return DropdownMenuItem(
-                value: item,
-                child: Text(item),
-              );
+              return DropdownMenuItem(value: item, child: Text(item));
             }).toList(),
 
             onChanged: onChanged,
@@ -523,4 +446,46 @@ class _MockTestScreen extends State<MockTestScreen>{
     );
   }
 
+  void _clearTestInput() {
+    _syllabusController.clear();
+    setState(() {
+      difficulty = "Medium";
+      testType = "MCQ+Coding";
+      duration = "60 Min";
+      focusWeakAreas = true;
+    });
+  }
+
+  Future<void> _generateTest() async {
+    final syllabus = _syllabusController.text.trim();
+    if (syllabus.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please add syllabus, notes, or topics")),
+      );
+      return;
+    }
+
+    await _firestoreService.addQuizz(
+      QuizzModel(
+        quizzId: "",
+        quizz: "$syllabus | $difficulty | $testType | $duration",
+        quizzanswer:
+            "Generated test request saved. Connect AI generation here next.",
+      ),
+    );
+    await _firestoreService.updateCurrentProfile({
+      "testsTaken": FieldValue.increment(1),
+    });
+    await _firestoreService.addActivity(
+      title: "Mock test generated",
+      subtitle: syllabus,
+    );
+
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Mock test request saved")));
+  }
 }

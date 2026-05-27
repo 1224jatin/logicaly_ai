@@ -1,308 +1,287 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/models/flashcard_model.dart';
+import 'package:logicaly_ai_project/services/fire_store_services.dart';
 
-class ManualFlashcards extends StatefulWidget{
+class ManualFlashcards extends StatefulWidget {
+  const ManualFlashcards({super.key});
+
   @override
   State<StatefulWidget> createState() => _ManualFlashcards();
-
 }
-class _ManualFlashcards extends State<ManualFlashcards>{
-  TextEditingController addQuestion = TextEditingController();
-  TextEditingController addAnswer = TextEditingController();
 
-  int currentCard = 1;
+class _ManualFlashcards extends State<ManualFlashcards> {
+  final FirestoreService _firestoreService = FirestoreService();
+  final TextEditingController addQuestion = TextEditingController();
+  final TextEditingController addAnswer = TextEditingController();
 
-  final List<String> cardQuestion = [];
-  final List<String> cardAnswers = [];
+  int currentCard = 0;
+  bool showAnswer = false;
+
+  @override
+  void dispose() {
+    addQuestion.dispose();
+    addAnswer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF5B82F7),
-        onPressed: () {
-          // on pressed action
-
-        },
-
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 32,
-        ),
+        onPressed: showDialoge,
+        child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
+          child: StreamBuilder<List<FlashcardModel>>(
+            stream: _firestoreService.flashcardsStream(),
+            builder: (context, snapshot) {
+              final cards = snapshot.data ?? [];
+              if (currentCard >= cards.length && cards.isNotEmpty) {
+                currentCard = cards.length - 1;
+              }
 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-
-              const SizedBox(height: 10),
-
-              // ================= TOP BAR =================
-
-              Row(
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                    ),
-                  ),
-
-                  const SizedBox(width: 4),
-
-                  const Text(
-                    "UX/UI",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-
-              const Padding(
-                padding: EdgeInsets.only(left: 14),
-
-                child: Text(
-                  "Revise through Flashcards",
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 26),
-
-              // ================= FLASHCARD =================
-
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(22),
-
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                    BorderRadius.circular(24),
-
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-
-                  child: Column(
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
-
-                      // Title
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.arrow_back_ios),
+                      ),
+                      const SizedBox(width: 4),
                       const Text(
-                        "Answer",
+                        "Flashcards",
                         style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-
-                      // Content
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            cardQuestion[currentCard - 1],
-                            textAlign: TextAlign.center,
-
-                            style: const TextStyle(
-                              fontSize: 20,
-                              height: 1.3,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Bottom Icons
-                      Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.center,
-
-                        children: const [
-                          Icon(
-                            Icons.close,
-                            color: Colors.red,
-                            size: 42,
-                          ),
-
-                          SizedBox(width: 80),
-                          Icon(
-                            Icons.check,
-                            color: Colors.green,
-                            size: 42,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
                     ],
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ================= BUTTONS =================
-
-              Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-                children: [
-                  // Previous Button
-                  SizedBox(
-                    width: 140,
-                    height: 56,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        if (currentCard > 1) {
-                          setState(() {
-                            currentCard--;
-                          });
-                        }
-                      },
-
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(20),
-                        ),
-                      ),
-
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.black,
-                      ),
-
-                      label: const Text(
-                        "Previous",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 18,
-                        ),
-                      ),
+                  const SizedBox(height: 6),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 14),
+                    child: Text(
+                      "Revise through Flashcards",
+                      style: TextStyle(color: Colors.black54, fontSize: 14),
                     ),
                   ),
-
-                  // Next Button
-                  SizedBox(
-                    width: 140,
-                    height: 56,
-
-                    child: OutlinedButton(
-                      onPressed: () {
-                        if (currentCard <
-                            cardQuestion.length) {
-                          setState(() {
-                            currentCard++;
-                          });
-                        }
-                      },
-
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(20),
-                        ),
-                      ),
-
-                      child: Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.center,
-
-                        children: const [
-
-                          Text(
-                            "Next",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                            ),
-                          ),
-
-                          SizedBox(width: 6),
-
-                          Icon(
-                            Icons.arrow_forward,
-                            color: Colors.black,
-                          ),
-                        ],
-                      ),
-                    ),
+                  const SizedBox(height: 26),
+                  Expanded(
+                    child: _buildFlashcardBody(cards, snapshot.connectionState),
                   ),
+                  const SizedBox(height: 20),
+                  _buildNavigation(cards),
+                  const SizedBox(height: 20),
                 ],
-              ),
-
-              const SizedBox(height: 20),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
-  void showDialoge(){
-    AlertDialog(
-      title: const Text("Add Flashcard"),
-      content: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TextField(
-            controller: addQuestion,
-            decoration: InputDecoration(
-              label: const Text("Qusetion"),
-            ),
+
+  Widget _buildFlashcardBody(
+    List<FlashcardModel> cards,
+    ConnectionState connectionState,
+  ) {
+    if (connectionState == ConnectionState.waiting && cards.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (cards.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Center(
+          child: Text(
+            "Tap + to add your first flashcard.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54, fontSize: 18),
           ),
-          TextField(
-            controller: addAnswer,
-            decoration: InputDecoration(
-              label: const Text("Ans"),
+        ),
+      );
+    }
+
+    final card = cards[currentCard];
+    return InkWell(
+      onTap: () => setState(() => showAnswer = !showAnswer),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
-      )  ,
-      actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(onPressed: (){
-              return null ;
-
-            }, child: Text("Cancel")),
-            ElevatedButton(onPressed: (){
-
-
-            }, child: Text("Add")),
           ],
-        )
+        ),
+        child: Column(
+          children: [
+            Text(
+              showAnswer ? "Answer" : "Question",
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  showAnswer ? card.cardAns : card.cardQues,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    height: 1.3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+            const Text(
+              "Tap card to flip",
+              style: TextStyle(color: Colors.black45),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigation(List<FlashcardModel> cards) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        SizedBox(
+          width: 140,
+          height: 56,
+          child: OutlinedButton.icon(
+            onPressed: cards.isEmpty || currentCard == 0
+                ? null
+                : () {
+                    setState(() {
+                      currentCard--;
+                      showAnswer = false;
+                    });
+                  },
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            label: const Text(
+              "Previous",
+              style: TextStyle(color: Colors.black, fontSize: 18),
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 140,
+          height: 56,
+          child: OutlinedButton(
+            onPressed: cards.isEmpty || currentCard >= cards.length - 1
+                ? null
+                : () {
+                    setState(() {
+                      currentCard++;
+                      showAnswer = false;
+                    });
+                  },
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Next",
+                  style: TextStyle(color: Colors.black, fontSize: 18),
+                ),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_forward, color: Colors.black),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
 
+  Future<void> showDialoge() async {
+    addQuestion.clear();
+    addAnswer.clear();
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Add Flashcard"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: addQuestion,
+                decoration: const InputDecoration(label: Text("Question")),
+              ),
+              TextField(
+                controller: addAnswer,
+                decoration: const InputDecoration(label: Text("Answer")),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (addQuestion.text.trim().isEmpty ||
+                    addAnswer.text.trim().isEmpty) {
+                  return;
+                }
+
+                await _firestoreService.addFlashcard(
+                  FlashcardModel(
+                    cardId: "",
+                    cardQues: addQuestion.text.trim(),
+                    cardAns: addAnswer.text.trim(),
+                  ),
+                );
+                await _firestoreService.addActivity(
+                  title: "Flashcard created",
+                  subtitle: addQuestion.text.trim(),
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Add"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

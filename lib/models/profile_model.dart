@@ -23,15 +23,15 @@ class ProfileModel {
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
     return ProfileModel(
-      uid: json['uid'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String,
+      uid: json['uid'] as String? ?? "",
+      name: json['name'] as String? ?? "",
+      email: json['email'] as String? ?? "",
       //imageUrl: json['imageUrl'] as String,
-      streakDays: json['streakDays'] ?? 0 as String,
-      dailyGoalMinutes: json['dailyGoalMinutes']  ?? 0 as String,
-      completedMinutes: json['completedMinutes'] ?? 0 as String,
-      testsTaken: json['testsTaken'] ?? 0 as String,
-      studyHours: json['studyHours']  ?? 0 as String,
+      streakDays: json['streakDays'] as int? ?? 0,
+      dailyGoalMinutes: json['dailyGoalMinutes'] as int? ?? 30,
+      completedMinutes: json['completedMinutes'] as int? ?? 0,
+      testsTaken: json['testsTaken'] as int? ?? 0,
+      studyHours: json['studyHours'] as int? ?? 0,
     );
   }
 

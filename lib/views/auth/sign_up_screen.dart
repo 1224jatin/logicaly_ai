@@ -1,18 +1,28 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:logicaly_ai_project/views/auth/login_screen.dart';
 import 'package:logicaly_ai_project/views/auth/otp_screen.dart';
 
 import '../../services/auth_services.dart';
 
 class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
+
   @override
   State<StatefulWidget> createState() => _SignUpScreen();
 }
-class _SignUpScreen extends State<SignUpScreen>{
+
+class _SignUpScreen extends State<SignUpScreen> {
   TextEditingController userNameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    userNameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,36 +38,33 @@ class _SignUpScreen extends State<SignUpScreen>{
 
                 // Robot Logo
                 Center(
-                    child: Image.asset("assets/images/logo/logicaly_icon_logo_.png",
-                      height: 160,)
+                  child: Image.asset(
+                    "assets/images/logo/logicaly_icon_logo_.png",
+                    height: 160,
+                  ),
                 ),
 
                 const SizedBox(height: 1),
 
                 // Welcome Text
-                Container(
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Welcome",
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
+                const Column(
+                  children: [
+                    Text(
+                      "Welcome",
+                      style: TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
+                    ),
 
-                      const SizedBox(height: 1),
+                    SizedBox(height: 1),
 
-                      const Text(
-                        "Signup to start your learning journey",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                    Text(
+                      "Signup to start your learning journey",
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 10),
@@ -65,10 +72,7 @@ class _SignUpScreen extends State<SignUpScreen>{
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "Username",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                   ),
                 ),
                 Container(
@@ -84,6 +88,7 @@ class _SignUpScreen extends State<SignUpScreen>{
                       Expanded(
                         child: TextField(
                           controller: userNameController,
+                          keyboardType: TextInputType.text,
                           decoration: const InputDecoration(
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
@@ -97,19 +102,14 @@ class _SignUpScreen extends State<SignUpScreen>{
                 ),
                 const SizedBox(height: 10),
 
-
                 //-----------Emaill----------
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "Email",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                   ),
                 ),
-
 
                 Container(
                   height: 50,
@@ -129,10 +129,11 @@ class _SignUpScreen extends State<SignUpScreen>{
                       Expanded(
                         child: TextField(
                           controller: emailController,
-                          keyboardType: TextInputType.phone,
+                          keyboardType: TextInputType.emailAddress,
 
                           decoration: const InputDecoration(
                             hintText: "abcdfg@gmail.com",
+                            hintStyle: TextStyle(color: Colors.grey),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 15,
@@ -144,16 +145,13 @@ class _SignUpScreen extends State<SignUpScreen>{
                   ),
                 ),
                 const SizedBox(height: 10),
-                //-----------passworddd----------
 
+                //-----------passworddd----------
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "Password",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                   ),
                 ),
 
@@ -171,7 +169,7 @@ class _SignUpScreen extends State<SignUpScreen>{
                       Expanded(
                         child: TextField(
                           controller: passwordController,
-                          keyboardType: TextInputType.phone,
+                          keyboardType: TextInputType.visiblePassword,
 
                           decoration: const InputDecoration(
                             border: InputBorder.none,
@@ -188,8 +186,6 @@ class _SignUpScreen extends State<SignUpScreen>{
                 const SizedBox(height: 12),
 
                 // Small Text
-
-
                 const SizedBox(height: 35),
 
                 // Send OTP Button
@@ -197,34 +193,79 @@ class _SignUpScreen extends State<SignUpScreen>{
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
-                      OtpServices().generateOtp();
-                      // ON press action here
-                      Navigator.push(context, MaterialPageRoute(builder: (context)=>
-                          OtpScreen( sentOtp: '',)));
-
-                    },
+                    onPressed: _isLoading ? null : _sendOtp,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3563E9),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                      ),
+                    child: Text(
+                      _isLoading ? "Sending OTP..." : "Sign Up",
+                      style: TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-        )
+        ),
       ),
     );
   }
 
+  Future<void> _sendOtp() async {
+    final userName = userNameController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (userName.isEmpty || email.isEmpty || password.isEmpty) {
+      _showSnackBar("Please fill all fields");
+      return;
+    }
+
+    if (password.length < 6) {
+      _showSnackBar("Password must be at least 6 characters");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final otpServices = OtpServices();
+    final otp = otpServices.generateOtp();
+
+    try {
+      final sent = await otpServices.sendOtp(email, otp);
+      if (!mounted) {
+        return;
+      }
+
+      if (!sent) {
+        _showSnackBar("Could not send OTP. Please try again.");
+        return;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpScreen(
+            sentOtp: otp,
+            email: email,
+            password: password,
+            userName: userName,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 }

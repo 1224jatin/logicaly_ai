@@ -1,12 +1,26 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/services/fire_store_services.dart';
 
 class SmartNotes extends StatefulWidget {
+  const SmartNotes({super.key});
+
   @override
   State<StatefulWidget> createState() => _SmartNotes();
-
 }
-class _SmartNotes extends State<SmartNotes>{
+
+class _SmartNotes extends State<SmartNotes> {
+  final FirestoreService _firestoreService = FirestoreService();
+  final TextEditingController _inputController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+  bool _isGenerating = false;
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,14 +35,10 @@ class _SmartNotes extends State<SmartNotes>{
             crossAxisAlignment: CrossAxisAlignment.start,
 
             children: [
-
               // ---------------- TITLE ----------------
               const Text(
                 "Smart Notes",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 20),
@@ -46,20 +56,18 @@ class _SmartNotes extends State<SmartNotes>{
                   crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
-
                     // Text Field
                     TextField(
+                      controller: _inputController,
                       maxLines: 6,
 
                       decoration: InputDecoration(
                         hintText:
-                        "paste your topic, notes, or upload a file...",
+                            "paste your topic, notes, or upload a file...",
 
                         border: InputBorder.none,
 
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade500,
-                        ),
+                        hintStyle: TextStyle(color: Colors.grey.shade500),
                       ),
                     ),
 
@@ -68,7 +76,6 @@ class _SmartNotes extends State<SmartNotes>{
                     // Buttons Row
                     Row(
                       children: [
-
                         // Upload PDF
                         buildSmallButton(
                           icon: Icons.picture_as_pdf,
@@ -98,7 +105,7 @@ class _SmartNotes extends State<SmartNotes>{
                 height: 56,
 
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _isGenerating ? null : _generateNotes,
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3563E9),
@@ -108,17 +115,11 @@ class _SmartNotes extends State<SmartNotes>{
                     ),
                   ),
 
-                  icon: const Icon(
-                    Icons.auto_awesome,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.auto_awesome, color: Colors.white),
 
-                  label: const Text(
-                    "Generate Notes",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
+                  label: Text(
+                    _isGenerating ? "Generating..." : "Generate Notes",
+                    style: const TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
               ),
@@ -128,10 +129,7 @@ class _SmartNotes extends State<SmartNotes>{
               // ---------------- AI NOTES ----------------
               const Text(
                 "AI Notes",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 14),
@@ -148,15 +146,14 @@ class _SmartNotes extends State<SmartNotes>{
                 ),
 
                 child: TextField(
+                  controller: _notesController,
                   maxLines: null,
 
                   decoration: InputDecoration(
                     hintText: "Your notes",
                     border: InputBorder.none,
 
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade500,
-                    ),
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
                   ),
                 ),
               ),
@@ -166,11 +163,10 @@ class _SmartNotes extends State<SmartNotes>{
               // ---------------- ACTION BUTTONS ----------------
               Row(
                 children: [
-
                   // Download
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: _saveNotes,
 
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -182,7 +178,7 @@ class _SmartNotes extends State<SmartNotes>{
 
                       icon: const Icon(Icons.download),
 
-                      label: const Text("Download"),
+                      label: const Text("Save"),
                     ),
                   ),
 
@@ -203,16 +199,11 @@ class _SmartNotes extends State<SmartNotes>{
                         ),
                       ),
 
-                      icon: const Icon(
-                        Icons.auto_awesome,
-                        color: Colors.white,
-                      ),
+                      icon: const Icon(Icons.auto_awesome, color: Colors.white),
 
                       label: const Text(
                         "Ask AI",
-                        style: TextStyle(
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
@@ -224,10 +215,7 @@ class _SmartNotes extends State<SmartNotes>{
               // ---------------- UPLOADED PDF ----------------
               const Text(
                 "Uploaded PDF's",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 16),
@@ -243,13 +231,12 @@ class _SmartNotes extends State<SmartNotes>{
 
                 child: Row(
                   children: [
-
                     // PDF Icon
                     Container(
                       padding: const EdgeInsets.all(12),
 
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
 
@@ -265,11 +252,9 @@ class _SmartNotes extends State<SmartNotes>{
                     // File Info
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
 
                         children: const [
-
                           Text(
                             "Cryptography Notes.pdf",
                             style: TextStyle(
@@ -310,10 +295,7 @@ class _SmartNotes extends State<SmartNotes>{
     required Color iconColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
 
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
@@ -322,26 +304,59 @@ class _SmartNotes extends State<SmartNotes>{
 
       child: Row(
         children: [
-
-          Icon(
-            icon,
-            color: iconColor,
-            size: 18,
-          ),
+          Icon(icon, color: iconColor, size: 18),
 
           const SizedBox(width: 6),
 
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
-
   }
 
+  Future<void> _generateNotes() async {
+    final input = _inputController.text.trim();
+    if (input.isEmpty) {
+      _showSnackBar("Please enter a topic or notes first");
+      return;
+    }
+
+    setState(() => _isGenerating = true);
+    final generated =
+        "Summary\n\n$input\n\nKey points\n- Review the main concept.\n- Turn important terms into flashcards.\n- Practice with a mock test.";
+    _notesController.text = generated;
+    await _firestoreService.addNote(input: input, generatedNote: generated);
+    await _firestoreService.addActivity(
+      title: "Smart notes generated",
+      subtitle: input,
+    );
+    if (mounted) {
+      setState(() => _isGenerating = false);
+    }
+  }
+
+  Future<void> _saveNotes() async {
+    final input = _inputController.text.trim();
+    final notes = _notesController.text.trim();
+    if (notes.isEmpty) {
+      _showSnackBar("No notes to save yet");
+      return;
+    }
+
+    await _firestoreService.addNote(input: input, generatedNote: notes);
+    await _firestoreService.addActivity(
+      title: "Notes saved",
+      subtitle: input.isEmpty ? "Manual note" : input,
+    );
+    _showSnackBar("Notes saved");
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 }
