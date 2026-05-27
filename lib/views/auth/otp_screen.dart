@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,8 +33,38 @@ class _OtpScreen extends State<OtpScreen> {
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
   bool _isLoading = false;
 
+  late String _currentOtp;
+  Timer? _timer;
+  int _remainingSeconds = 240; // 4 minutes
+
+  @override
+  void initState() {
+    super.initState();
+    _currentOtp = widget.sentOtp;
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() => _remainingSeconds = 240);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() => _remainingSeconds--);
+      } else {
+        _timer?.cancel();
+      }
+    });
+  }
+
+  String get _formattedTime {
+    final minutes = (_remainingSeconds / 60).floor();
+    final seconds = _remainingSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   @override
   void dispose() {
+    _timer?.cancel();
     for (final controller in _controllers) {
       controller.dispose();
     }
@@ -165,29 +197,35 @@ class _OtpScreen extends State<OtpScreen> {
 
                   const SizedBox(height: 25),
 
-                  const Text(
-                    "Resend OTP in 04:35",
+                  Text(
+                    "Resend OTP in $_formattedTime",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
                   ),
 
                   const SizedBox(height: 8),
 
-                  RichText(
-                    textAlign: TextAlign.center,
-                    text: const TextSpan(
-                      text: "Didn't receive the OTP? ",
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                      children: [
-                        TextSpan(
-                          text: "Resend",
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Didn't receive the OTP? ",
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                      InkWell(
+                        onTap: _remainingSeconds == 0 ? _resendOtp : null,
+                        child: Text(
+                          "Resend",
                           style: TextStyle(
-                            color: Colors.blue,
+                            color: _remainingSeconds == 0
+                                ? Colors.blue
+                                : Colors.grey,
                             fontWeight: FontWeight.bold,
+                            fontSize: 13,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -207,11 +245,39 @@ class _OtpScreen extends State<OtpScreen> {
     }
   }
 
+  Future<void> _resendOtp() async {
+    if (widget.email == null) return;
+
+    setState(() => _isLoading = true);
+
+    final otpService = OtpServices();
+    final newOtp = otpService.generateOtp();
+    final success = await otpService.sendOtp(widget.email!, newOtp);
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      setState(() => _currentOtp = newOtp);
+      _startTimer();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("A new OTP has been sent.")),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to resend OTP. Try again.")),
+        );
+      }
+    }
+  }
+
   Future<void> _verifyOtp() async {
     final enteredOtp = _controllers.map((controller) => controller.text).join();
-    final isVerified = OtpServices().verifyOtp(widget.sentOtp, enteredOtp);
+    final isVerified = OtpServices().verifyOtp(_currentOtp, enteredOtp);
 
-    if (!isVerified && widget.sentOtp.isNotEmpty) {
+    if (!isVerified && _currentOtp.isNotEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
