@@ -1,12 +1,11 @@
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final SupabaseClient _client = Supabase.instance.client;
 
-  String? get currentUid => FirebaseAuth.instance.currentUser?.uid;
+  String? get currentUid => _client.auth.currentUser?.id;
 
   Future<String> uploadUserFile({
     required File file,
@@ -21,12 +20,21 @@ class StorageService {
     final safeName =
         fileName ??
         "${DateTime.now().millisecondsSinceEpoch}_${file.path.split(Platform.pathSeparator).last}";
-    final ref = _storage.ref().child("users/$uid/$folder/$safeName");
-    await ref.putFile(file);
-    return ref.getDownloadURL();
+    final path = "users/$uid/$folder/$safeName";
+    await _client.storage.from("user-files").upload(path, file);
+    return _client.storage.from("user-files").getPublicUrl(path);
   }
 
   Future<void> deleteByUrl(String downloadUrl) async {
-    await _storage.refFromURL(downloadUrl).delete();
+    final marker = "/storage/v1/object/public/user-files/";
+    final markerIndex = downloadUrl.indexOf(marker);
+    if (markerIndex == -1) {
+      return;
+    }
+
+    final path = Uri.decodeComponent(
+      downloadUrl.substring(markerIndex + marker.length),
+    );
+    await _client.storage.from("user-files").remove([path]);
   }
 }

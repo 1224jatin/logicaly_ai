@@ -1,12 +1,26 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/services/auth_services.dart';
 import 'package:logicaly_ai_project/views/auth/login_screen.dart';
+import 'package:logicaly_ai_project/views/auth/password_reset_screen.dart';
 import 'package:logicaly_ai_project/views/navigation_bar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+const String _supabaseUrl = "https://cgqlphczyvecbagvtmwe.supabase.co";
+const String _supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNncWxwaGN6eXZlY2JhZ3Z0bXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDgzODEsImV4cCI6MjA5NTUyNDM4MX0.9foGRT-o0fmOwynjy2t-J7BNzNQgYmjn3zQV5XUXHHo";
+const String _supabaseAnonKeyPlaceholder = "PASTE_SUPABASE_ANON_KEY_HERE";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  if (_supabaseAnonKey.isEmpty ||
+      _supabaseAnonKey == _supabaseAnonKeyPlaceholder) {
+    runApp(const MissingSupabaseConfigApp());
+    return;
+  }
+
+  await Supabase.initialize(
+    url: _supabaseUrl,
+    anonKey: _supabaseAnonKey,
+  );
   runApp(const MyApp());
 }
 
@@ -24,21 +38,53 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class MissingSupabaseConfigApp extends StatelessWidget {
+  const MissingSupabaseConfigApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              "Missing Supabase anon key. Paste it into _supabaseAnonKey in lib/main.dart.",
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+    return StreamBuilder<AuthState>(
+      stream: AuthService().authStateChanges,
+      initialData: AuthState(
+        AuthChangeEvent.initialSession,
+        AuthService().currentUser == null
+            ? null
+            : Supabase.instance.client.auth.currentSession,
+      ),
       builder: (context, snapshot) {
+        if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
+          return const PasswordResetScreen();
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (snapshot.hasData) {
+        if (AuthService().currentUser != null) {
           return const NavigationBarScreen();
         }
 

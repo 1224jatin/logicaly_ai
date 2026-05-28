@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/profile_model.dart';
 import 'package:logicaly_ai_project/services/auth_services.dart';
@@ -25,11 +24,11 @@ class _Profile extends State<Profile> {
           child: StreamBuilder<ProfileModel?>(
             stream: _firestoreService.currentProfileStream(),
             builder: (context, snapshot) {
-              final user = FirebaseAuth.instance.currentUser;
+              final user = AuthService().currentUser;
               final profile = snapshot.data;
               final name = profile?.name.isNotEmpty == true
                   ? profile!.name
-                  : user?.displayName ?? "Student";
+                  : user?.userMetadata?["name"] as String? ?? "Student";
               final email = profile?.email.isNotEmpty == true
                   ? profile!.email
                   : user?.email ?? "";
@@ -295,7 +294,7 @@ class _Profile extends State<Profile> {
               if (name.isEmpty) {
                 return;
               }
-              await FirebaseAuth.instance.currentUser?.updateDisplayName(name);
+              await AuthService().updateDisplayName(name);
               await _firestoreService.updateCurrentProfile({"name": name});
               if (context.mounted) {
                 Navigator.pop(context);

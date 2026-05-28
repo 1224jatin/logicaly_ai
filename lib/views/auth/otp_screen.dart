@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logicaly_ai_project/views/navigation_bar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_services.dart';
 
@@ -284,6 +284,7 @@ class _OtpScreen extends State<OtpScreen> {
       return;
     }
 
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
@@ -297,14 +298,7 @@ class _OtpScreen extends State<OtpScreen> {
         );
       }
 
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const NavigationBarScreen()),
-      );
+      // No manual navigation here. AuthGate handles it.
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -332,21 +326,19 @@ class _OtpScreen extends State<OtpScreen> {
   }
 
   String _authErrorMessage(Object error) {
-    if (error is FirebaseAuthException) {
-      switch (error.code) {
-        case 'email-already-in-use':
+    if (error is AuthException) {
+      final message = error.message.toLowerCase();
+      if (message.contains("already registered") ||
+          message.contains("already exists")) {
           return "This email is already registered";
-        case 'invalid-email':
-          return "Please enter a valid email address";
-        case 'weak-password':
-          return "Password is too weak";
-        case 'operation-not-allowed':
-          return "Email/Password sign up is not enabled in Firebase";
-        case 'configuration-not-found':
-          return "Firebase configuration error. Check reCAPTCHA settings in console.";
-        default:
-          return error.message ?? "An error occurred";
       }
+      if (message.contains("invalid email")) {
+        return "Please enter a valid email address";
+      }
+      if (message.contains("password")) {
+        return "Password is too weak";
+      }
+      return error.message;
     }
     return "Could not create account. Please try again.";
   }

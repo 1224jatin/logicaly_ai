@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:logicaly_ai_project/services/ai_services.dart';
 import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/study_file_service.dart';
+import 'package:logicaly_ai_project/views/chat/chat_bot.dart';
 
 class SmartNotes extends StatefulWidget {
   const SmartNotes({super.key});
@@ -10,9 +13,13 @@ class SmartNotes extends StatefulWidget {
 
 class _SmartNotes extends State<SmartNotes> {
   final FirestoreService _firestoreService = FirestoreService();
+  final AiService _aiService = AiService();
+  final StudyFileService _studyFileService = StudyFileService();
   final TextEditingController _inputController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  StudyFileResult? _uploadedFile;
   bool _isGenerating = false;
+  bool _isReadingFile = false;
 
   @override
   void dispose() {
@@ -79,8 +86,9 @@ class _SmartNotes extends State<SmartNotes> {
                         // Upload PDF
                         buildSmallButton(
                           icon: Icons.picture_as_pdf,
-                          text: "Upload PDF",
+                          text: _isReadingFile ? "Uploading..." : "Upload",
                           iconColor: Colors.red,
+                          onTap: _isReadingFile ? null : _pickStudyFile,
                         ),
 
                         const SizedBox(width: 12),
@@ -90,6 +98,7 @@ class _SmartNotes extends State<SmartNotes> {
                           icon: Icons.mic,
                           text: "Voice input",
                           iconColor: Colors.blue,
+                          onTap: () => _showSnackBar("Voice input coming soon"),
                         ),
                       ],
                     ),
@@ -187,7 +196,7 @@ class _SmartNotes extends State<SmartNotes> {
                   // Ask AI
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: _askAiAboutNotes,
 
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3563E9),
@@ -214,70 +223,13 @@ class _SmartNotes extends State<SmartNotes> {
 
               // ---------------- UPLOADED PDF ----------------
               const Text(
-                "Uploaded PDF's",
+                "Uploaded File",
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 16),
 
-              // PDF Card
-              Container(
-                padding: const EdgeInsets.all(14),
-
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-
-                child: Row(
-                  children: [
-                    // PDF Icon
-                    Container(
-                      padding: const EdgeInsets.all(12),
-
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-
-                      child: const Icon(
-                        Icons.picture_as_pdf,
-                        color: Colors.red,
-                        size: 32,
-                      ),
-                    ),
-
-                    const SizedBox(width: 14),
-
-                    // File Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-
-                        children: const [
-                          Text(
-                            "Cryptography Notes.pdf",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          SizedBox(height: 4),
-
-                          Text(
-                            "82 pages - 1.9 MB - PDF",
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildUploadedFileCard(),
 
               const SizedBox(height: 20),
             ],
@@ -293,24 +245,82 @@ class _SmartNotes extends State<SmartNotes> {
     required IconData icon,
     required String text,
     required Color iconColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
+    );
+  }
 
+  Widget _buildUploadedFileCard() {
+    final uploadedFile = _uploadedFile;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 18),
-
-          const SizedBox(width: 6),
-
-          Text(
-            text,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              uploadedFile?.isImage == true
+                  ? Icons.image_outlined
+                  : Icons.insert_drive_file_outlined,
+              color: Colors.red,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  uploadedFile?.fileName ?? "No file uploaded",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  uploadedFile == null
+                      ? "Upload any file except audio/video"
+                      : uploadedFile.isImage
+                      ? "Image file - Groq vision will read it"
+                      : uploadedFile.hasReadableText
+                      ? "Readable text added to input"
+                      : "Selected, but no readable text found",
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -319,22 +329,73 @@ class _SmartNotes extends State<SmartNotes> {
 
   Future<void> _generateNotes() async {
     final input = _inputController.text.trim();
-    if (input.isEmpty) {
-      _showSnackBar("Please enter a topic or notes first");
+    final uploadedFile = _uploadedFile;
+    if (input.isEmpty && uploadedFile?.imageBytes == null) {
+      if (uploadedFile == null) {
+        _showSnackBar("Please enter a topic, notes, or upload a file first");
+      } else {
+        _showSnackBar("Selected file has no readable study text");
+      }
       return;
     }
 
     setState(() => _isGenerating = true);
-    final generated =
-        "Summary\n\n$input\n\nKey points\n- Review the main concept.\n- Turn important terms into flashcards.\n- Practice with a mock test.";
-    _notesController.text = generated;
-    await _firestoreService.addNote(input: input, generatedNote: generated);
-    await _firestoreService.addActivity(
-      title: "Smart notes generated",
-      subtitle: input,
-    );
-    if (mounted) {
-      setState(() => _isGenerating = false);
+    try {
+      final generated = uploadedFile?.imageBytes == null
+          ? await _aiService.generateNotes(input)
+          : await _aiService.generateNotesFromImage(
+              imageBytes: uploadedFile!.imageBytes!,
+              imageMimeType: uploadedFile.mimeType,
+            );
+      _notesController.text = generated;
+      await _firestoreService.addNote(
+        input: input.isEmpty ? uploadedFile?.fileName ?? "Uploaded file" : input,
+        generatedNote: generated,
+      );
+      await _firestoreService.addActivity(
+        title: "Smart notes generated",
+        subtitle: input.isEmpty ? uploadedFile?.fileName ?? "Uploaded file" : input,
+      );
+    } catch (error) {
+      _showSnackBar("Could not generate notes: $error");
+    } finally {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+      }
+    }
+  }
+
+  Future<void> _pickStudyFile() async {
+    setState(() => _isReadingFile = true);
+    try {
+      final file = await _studyFileService.pickStudyFile();
+      if (file == null) {
+        return;
+      }
+
+      if (file.hasReadableText) {
+        final existingText = _inputController.text.trim();
+        _inputController.text = [
+          if (existingText.isNotEmpty) existingText,
+          "Uploaded file: ${file.fileName}",
+          file.text,
+        ].join("\n\n");
+      }
+
+      setState(() => _uploadedFile = file);
+      _showSnackBar(
+        file.isImage
+            ? "Image uploaded"
+            : file.hasReadableText
+            ? "File text added"
+            : "File selected, but paste notes too",
+      );
+    } catch (error) {
+      _showSnackBar("Could not upload file: $error");
+    } finally {
+      if (mounted) {
+        setState(() => _isReadingFile = false);
+      }
     }
   }
 
@@ -346,10 +407,13 @@ class _SmartNotes extends State<SmartNotes> {
       return;
     }
 
-    await _firestoreService.addNote(input: input, generatedNote: notes);
+    final title = input.isEmpty
+        ? _uploadedFile?.fileName ?? "Manual note"
+        : input;
+    await _firestoreService.addNote(input: title, generatedNote: notes);
     await _firestoreService.addActivity(
       title: "Notes saved",
-      subtitle: input.isEmpty ? "Manual note" : input,
+      subtitle: title,
     );
     _showSnackBar("Notes saved");
   }
@@ -358,5 +422,22 @@ class _SmartNotes extends State<SmartNotes> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _askAiAboutNotes() {
+    final notes = _notesController.text.trim();
+    if (notes.isEmpty) {
+      _showSnackBar("Generate or write notes first");
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatBot(
+          initialPrompt: "Help me understand and revise these notes:\n\n$notes",
+        ),
+      ),
+    );
   }
 }

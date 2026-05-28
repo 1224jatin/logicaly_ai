@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/views/auth/sign_up_screen.dart';
-import 'package:logicaly_ai_project/views/navigation_bar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_services.dart';
 
@@ -12,9 +12,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isResettingPassword = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -139,11 +141,24 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: TextField(
                           controller: passwordController,
                           keyboardType: TextInputType.visiblePassword,
+                          obscureText: _obscurePassword,
 
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 15,
+                            ),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
                             ),
                           ),
                         ),
@@ -155,34 +170,49 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 12),
 
                 // Small Text
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    children: [
-                      const Text(
-                        "Not have an account?",
-                        style: TextStyle(color: Colors.black),
-                      ),
-                      InkWell(
-                        // for signup
-                        child: Text(
-                          " Sign up",
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 12,
-                          ),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SignUpScreen(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Flexible(
+                            child: Text(
+                              "Don't have an account?",
+                              style: TextStyle(color: Colors.black),
                             ),
-                          );
-                        },
+                          ),
+                          InkWell(
+                            child: const Text(
+                              " Sign up",
+                              style: TextStyle(
+                                color: Colors.blueAccent,
+                                fontSize: 12,
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SignUpScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    TextButton(
+                      onPressed:
+                          _isResettingPassword ? null : _showForgotPassword,
+                      child: Text(
+                        _isResettingPassword
+                            ? "Sending..."
+                            : "Forgot password?",
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 35),
@@ -201,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Text(
                       _isLoading ? "Logging in..." : "Log in",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      style: const TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
                 ),
@@ -222,17 +252,12 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
       await AuthService().signIn(email: email, password: password);
-      if (!mounted) {
-        return;
-      }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const NavigationBarScreen()),
-      );
+      // No manual navigation here. AuthGate handles it.
     } catch (error) {
       if (mounted) {
         _showSnackBar(_authErrorMessage(error));
@@ -244,6 +269,73 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPassword() async {
+    final resetEmailController = TextEditingController(
+      text: emailController.text.trim(),
+    );
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Reset password"),
+          content: TextField(
+            controller: resetEmailController,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: "Email",
+              hintText: "abcdfg@gmail.com",
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, resetEmailController.text.trim());
+              },
+              child: const Text("Send link"),
+            ),
+          ],
+        );
+      },
+    );
+
+    resetEmailController.dispose();
+    if (!mounted) {
+      return;
+    }
+
+    if (email == null) {
+      return;
+    }
+
+    if (email.isEmpty) {
+      _showSnackBar("Please enter your email address");
+      return;
+    }
+
+    setState(() => _isResettingPassword = true);
+    try {
+      await AuthService().sendPasswordResetEmail(email: email);
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar("Reset link sent. Open it to create a new password.");
+    } catch (error) {
+      if (mounted) {
+        _showSnackBar(_resetPasswordErrorMessage(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isResettingPassword = false);
+      }
+    }
+  }
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(
       context,
@@ -251,15 +343,32 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _authErrorMessage(Object error) {
-    final message = error.toString();
-    if (message.contains("user-not-found") ||
-        message.contains("wrong-password") ||
-        message.contains("invalid-credential")) {
-      return "Invalid email or password";
+    if (error is AuthException) {
+      final message = error.message.toLowerCase();
+      if (message.contains("invalid login credentials")) {
+        return "Invalid email or password";
+      }
+      if (message.contains("invalid email")) {
+        return "Please enter a valid email address";
+      }
+      if (message.contains("email not confirmed")) {
+        return "Please confirm your email before logging in";
+      }
+      return error.message;
     }
-    if (message.contains("invalid-email")) {
-      return "Please enter a valid email address";
-    }
+
     return "Login failed. Please try again.";
+  }
+
+  String _resetPasswordErrorMessage(Object error) {
+    if (error is AuthException) {
+      final message = error.message.toLowerCase();
+      if (message.contains("invalid email")) {
+        return "Please enter a valid email address";
+      }
+      return error.message;
+    }
+
+    return "Could not send reset link. Please try again.";
   }
 }

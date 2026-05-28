@@ -1,67 +1,90 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logicaly_ai_project/models/profile_model.dart';
 import 'package:logicaly_ai_project/models/user_model.dart';
 import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final SupabaseClient _client = Supabase.instance.client;
   final FirestoreService _firestoreService = FirestoreService();
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser => _client.auth.currentUser;
 
-  Future<UserCredential> signIn({
+  Future<AuthResponse> signIn({
     required String email,
     required String password,
   }) {
-    return _auth.signInWithEmailAndPassword(
+    return _client.auth.signInWithPassword(
       email: email.trim(),
       password: password.trim(),
     );
   }
 
-  Future<UserCredential> signUp({
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _client.auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo: "logicalyai://password-reset",
+    );
+  }
+
+  Future<void> updatePassword(String password) {
+    return _client.auth.updateUser(UserAttributes(password: password.trim()));
+  }
+
+  Future<AuthResponse> signUp({
     required String userName,
     required String email,
     required String password,
   }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
+    final trimmedName = userName.trim();
+    final trimmedEmail = email.trim();
+    final response = await _client.auth.signUp(
+      email: trimmedEmail,
       password: password.trim(),
+      data: {"name": trimmedName},
     );
 
-    final user = credential.user;
+    final user = response.user;
     if (user == null) {
-      return credential;
+      return response;
     }
 
-    await user.updateDisplayName(userName.trim());
-    await _firestoreService.addUser(
-      UserModel(uId: user.uid, userName: userName.trim(), email: email.trim()),
-    );
-    await _firestoreService.addProfile(
-      ProfileModel(
-        uid: user.uid,
-        name: userName.trim(),
-        email: email.trim(),
-        streakDays: 0,
-        dailyGoalMinutes: 30,
-        completedMinutes: 0,
-        testsTaken: 0,
-        studyHours: 0,
-      ),
-    );
+    try {
+      await _firestoreService.addUser(
+        UserModel(uId: user.id, userName: trimmedName, email: trimmedEmail),
+        uid: user.id,
+      );
+      await _firestoreService.addProfile(
+        ProfileModel(
+          uid: user.id,
+          name: trimmedName,
+          email: trimmedEmail,
+          streakDays: 0,
+          dailyGoalMinutes: 30,
+          completedMinutes: 0,
+          testsTaken: 0,
+          studyHours: 0,
+        ),
+        uid: user.id,
+      );
+    } catch (error) {
+      debugPrint("Supabase profile bootstrap failed: $error");
+    }
 
-    return credential;
+    return response;
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> updateDisplayName(String name) {
+    return _client.auth.updateUser(UserAttributes(data: {"name": name.trim()}));
+  }
+
+  Future<void> signOut() => _client.auth.signOut();
 }
 
 class OtpServices {

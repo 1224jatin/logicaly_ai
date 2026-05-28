@@ -1,11 +1,14 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/ai_message_model.dart';
+import 'package:logicaly_ai_project/services/auth_services.dart';
+import 'package:logicaly_ai_project/services/ai_services.dart';
 import 'package:logicaly_ai_project/services/fire_store_services.dart';
 import 'package:logicaly_ai_project/views/profile/profile.dart';
 
 class ChatBot extends StatefulWidget {
-  const ChatBot({super.key});
+  final String? initialPrompt;
+
+  const ChatBot({super.key, this.initialPrompt});
 
   @override
   State<StatefulWidget> createState() => _ChatBot();
@@ -13,12 +16,23 @@ class ChatBot extends StatefulWidget {
 
 class _ChatBot extends State<ChatBot> {
   final FirestoreService _firestoreService = FirestoreService();
+  final AiService _aiService = AiService();
   final TextEditingController _messageController = TextEditingController();
+  bool _isSending = false;
 
   @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final initialPrompt = widget.initialPrompt;
+    if (initialPrompt != null && initialPrompt.trim().isNotEmpty) {
+      _messageController.text = initialPrompt.trim();
+    }
   }
 
   @override
@@ -168,8 +182,14 @@ class _ChatBot extends State<ChatBot> {
             ),
           ),
           IconButton(
-            onPressed: _sendMessage,
-            icon: Icon(Icons.send, color: Colors.blue.shade700),
+            onPressed: _isSending ? null : _sendMessage,
+            icon: _isSending
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(Icons.send, color: Colors.blue.shade700),
           ),
         ],
       ),
@@ -209,28 +229,49 @@ class _ChatBot extends State<ChatBot> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AuthService().currentUser?.id;
     if (text.isEmpty || uid == null) {
       return;
     }
 
     _messageController.clear();
-    await _firestoreService.addMessage(
-      AiMessageModel(
-        messageId: "",
-        senderId: uid,
-        receiverId: "ai",
-        message: text,
-      ),
-    );
-    await _firestoreService.addMessage(
-      AiMessageModel(
-        messageId: "",
-        senderId: "ai",
-        receiverId: uid,
-        message: "Saved. AI response generation can be connected here.",
-      ),
-    );
-    await _firestoreService.addActivity(title: "Asked AI", subtitle: text);
+    setState(() => _isSending = true);
+    try {
+      final history = await _firestoreService.getMessages();
+      await _firestoreService.addMessage(
+        AiMessageModel(
+          messageId: "",
+          senderId: uid,
+          receiverId: "ai",
+          message: text,
+        ),
+      );
+      String aiReply;
+      try {
+        aiReply = await _aiService.askChat(userMessage: text, history: history);
+      } catch (error) {
+        aiReply = "I could not generate a reply right now. $error";
+      }
+
+      await _firestoreService.addMessage(
+        AiMessageModel(
+          messageId: "",
+          senderId: "ai",
+          receiverId: uid,
+          message: aiReply,
+        ),
+      );
+      await _firestoreService.addActivity(title: "Asked AI", subtitle: text);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Could not send message: $error")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
   }
 }

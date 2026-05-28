@@ -24,6 +24,21 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>logicalyai</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>logicalyai</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Logicaly AI uses the camera to scan study doubts and solve them with AI.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Logicaly AI uses selected images to scan study doubts and solve them with AI.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -11,10 +11,11 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreen extends State<SignUpScreen> {
-  TextEditingController userNameController = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
+  final TextEditingController userNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -170,11 +171,24 @@ class _SignUpScreen extends State<SignUpScreen> {
                         child: TextField(
                           controller: passwordController,
                           keyboardType: TextInputType.visiblePassword,
+                          obscureText: _obscurePassword,
 
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 15,
+                            ),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
                             ),
                           ),
                         ),
@@ -186,6 +200,28 @@ class _SignUpScreen extends State<SignUpScreen> {
                 const SizedBox(height: 12),
 
                 // Small Text
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    children: [
+                      const Text(
+                        "Already have an account?",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      InkWell(
+                        child: const Text(
+                          " Log in",
+                          style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontSize: 12,
+                          ),
+                        ),
+                        onTap: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 35),
 
                 // Send OTP Button
@@ -202,7 +238,7 @@ class _SignUpScreen extends State<SignUpScreen> {
                     ),
                     child: Text(
                       _isLoading ? "Sending OTP..." : "Sign Up",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      style: const TextStyle(fontSize: 18, color: Colors.white),
                     ),
                   ),
                 ),
@@ -256,6 +292,10 @@ class _SignUpScreen extends State<SignUpScreen> {
           ),
         ),
       );
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar("Could not send OTP. Please try again.");
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
