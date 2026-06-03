@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/flashcard_model.dart';
 import 'package:logicaly_ai_project/services/fire_store_services.dart';
@@ -119,46 +121,100 @@ class _ManualFlashcards extends State<ManualFlashcards> {
     final card = cards[currentCard];
     return InkWell(
       onTap: () => setState(() => showAnswer = !showAnswer),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
+      borderRadius: BorderRadius.circular(24),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 420),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final rotateAnimation = Tween<double>(
+            begin: math.pi,
+            end: 0,
+          ).animate(animation);
+
+          return AnimatedBuilder(
+            animation: rotateAnimation,
+            child: child,
+            builder: (context, child) {
+              final isUnder = ValueKey(showAnswer) != child?.key;
+              var rotationY = rotateAnimation.value;
+              if (isUnder) {
+                rotationY -= math.pi;
+              }
+
+              return Transform(
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.001)
+                  ..rotateY(rotationY),
+                alignment: Alignment.center,
+                child: child,
+              );
+            },
+          );
+        },
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
+        },
+        child: _buildCardFace(
+          key: ValueKey(showAnswer),
+          title: showAnswer ? "Answer" : "Question",
+          text: showAnswer ? card.cardAns : card.cardQues,
         ),
-        child: Column(
-          children: [
-            Text(
-              showAnswer ? "Answer" : "Question",
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-            ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  showAnswer ? card.cardAns : card.cardQues,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    height: 1.3,
-                    fontWeight: FontWeight.w500,
-                  ),
+      ),
+    );
+  }
+
+  Widget _buildCardFace({
+    required Key key,
+    required String title,
+    required String text,
+  }) {
+    return Container(
+      key: key,
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 20,
+                  height: 1.3,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-            const Text(
-              "Tap card to flip",
-              style: TextStyle(color: Colors.black45),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+          const Text(
+            "Tap card to flip",
+            style: TextStyle(color: Colors.black45),
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
     );
   }

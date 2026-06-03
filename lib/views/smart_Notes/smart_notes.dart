@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/services/ai_services.dart';
 import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/pdf_service.dart';
 import 'package:logicaly_ai_project/services/study_file_service.dart';
+import 'package:logicaly_ai_project/services/voice_service.dart';
 import 'package:logicaly_ai_project/views/chat/chat_bot.dart';
 
 class SmartNotes extends StatefulWidget {
@@ -15,11 +17,28 @@ class _SmartNotes extends State<SmartNotes> {
   final FirestoreService _firestoreService = FirestoreService();
   final AiService _aiService = AiService();
   final StudyFileService _studyFileService = StudyFileService();
+  final PdfService _pdfService = PdfService();
+  final VoiceService _voiceService = VoiceService();
+
   final TextEditingController _inputController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   StudyFileResult? _uploadedFile;
   bool _isGenerating = false;
   bool _isReadingFile = false;
+  bool _isSpeechInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initVoice();
+  }
+
+  Future<void> _initVoice() async {
+    final available = await _voiceService.initialize();
+    if (mounted) {
+      setState(() => _isSpeechInitialized = available);
+    }
+  }
 
   @override
   void dispose() {
@@ -45,48 +64,45 @@ class _SmartNotes extends State<SmartNotes> {
               // ---------------- TITLE ----------------
               const Text(
                 "Smart Notes",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 20),
 
               // ---------------- INPUT BOX ----------------
               Container(
-                padding: const EdgeInsets.all(14),
-
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-
                   children: [
                     // Text Field
                     TextField(
                       controller: _inputController,
-                      maxLines: 6,
-
+                      maxLines: 5,
                       decoration: InputDecoration(
-                        hintText:
-                            "paste your topic, notes, or upload a file...",
-
+                        hintText: "paste your topic, notes, or upload a file...",
                         border: InputBorder.none,
-
-                        hintStyle: TextStyle(color: Colors.grey.shade500),
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
 
                     // Buttons Row
                     Row(
                       children: [
                         // Upload PDF
-                        buildSmallButton(
+                        _buildInputOption(
                           icon: Icons.picture_as_pdf,
-                          text: _isReadingFile ? "Uploading..." : "Upload",
+                          text: _isReadingFile ? "Uploading..." : "Upload PDF",
                           iconColor: Colors.red,
                           onTap: _isReadingFile ? null : _pickStudyFile,
                         ),
@@ -94,11 +110,16 @@ class _SmartNotes extends State<SmartNotes> {
                         const SizedBox(width: 12),
 
                         // Voice Input
-                        buildSmallButton(
-                          icon: Icons.mic,
-                          text: "Voice input",
-                          iconColor: Colors.blue,
-                          onTap: () => _showSnackBar("Voice input coming soon"),
+                        _buildInputOption(
+                          icon: _voiceService.isListening
+                              ? Icons.stop_circle_rounded
+                              : Icons.mic_none_rounded,
+                          text: _voiceService.isListening
+                              ? "Listening..."
+                              : "Voice input",
+                          iconColor:
+                              _voiceService.isListening ? Colors.red : Colors.blue,
+                          onTap: _toggleListening,
                         ),
                       ],
                     ),
@@ -106,132 +127,142 @@ class _SmartNotes extends State<SmartNotes> {
                 ),
               ),
 
-              const SizedBox(height: 22),
+              const SizedBox(height: 24),
 
               // ---------------- GENERATE BUTTON ----------------
               SizedBox(
                 width: double.infinity,
-                height: 56,
-
+                height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _isGenerating ? null : _generateNotes,
-
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3563E9),
-
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-
-                  icon: const Icon(Icons.auto_awesome, color: Colors.white),
-
+                  icon: const Icon(Icons.auto_awesome_outlined, color: Colors.white, size: 20),
                   label: Text(
                     _isGenerating ? "Generating..." : "Generate Notes",
-                    style: const TextStyle(fontSize: 18, color: Colors.white),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
 
               // ---------------- AI NOTES ----------------
               const Text(
                 "AI Notes",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
               // Notes Box
               Container(
-                height: 260,
+                height: 300,
                 width: double.infinity,
-                padding: const EdgeInsets.all(14),
-
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
                 ),
-
                 child: TextField(
                   controller: _notesController,
                   maxLines: null,
-
+                  style: const TextStyle(fontSize: 14, height: 1.5),
                   decoration: InputDecoration(
                     hintText: "Your notes",
                     border: InputBorder.none,
-
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // ---------------- ACTION BUTTONS ----------------
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Download
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _saveNotes,
-
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  InkWell(
+                    onTap: _downloadPdf,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.download_rounded, color: Colors.blue.shade700, size: 22),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Download",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-
-                      icon: const Icon(Icons.download),
-
-                      label: const Text("Save"),
+                      ],
                     ),
                   ),
 
-                  const SizedBox(width: 14),
-
                   // Ask AI
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _askAiAboutNotes,
-
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3563E9),
-
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                  ElevatedButton.icon(
+                    onPressed: _askAiAboutNotes,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3563E9),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
                       ),
-
-                      icon: const Icon(Icons.auto_awesome, color: Colors.white),
-
-                      label: const Text(
-                        "Ask AI",
-                        style: TextStyle(color: Colors.white),
+                    ),
+                    icon: const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 20),
+                    label: const Text(
+                      "ASK AI",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
 
               // ---------------- UPLOADED PDF ----------------
               const Text(
-                "Uploaded File",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                "Uploaded PDF's",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 16),
 
-              _buildUploadedFileCard(),
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _firestoreService.notesStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final notes = snapshot.data ?? [];
+                  if (notes.isEmpty) {
+                    return _buildUploadedFileCard(); // Fallback if no history
+                  }
 
-              const SizedBox(height: 20),
+                  return Column(
+                    children: notes.map((note) => _buildNoteItem(note)).toList(),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -239,30 +270,151 @@ class _SmartNotes extends State<SmartNotes> {
     );
   }
 
-  // ---------------- SMALL BUTTON ----------------
+  Widget _buildNoteItem(Map<String, dynamic> note) {
+    return GestureDetector(
+      onLongPress: () => _confirmDelete(note["noteId"] as String),
+      onTap: () {
+        setState(() {
+          _inputController.text = note["input"] as String;
+          _notesController.text = note["generatedNote"] as String;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 28),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    note["input"] as String,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    "Generated AI Note - Tap to view",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget buildSmallButton({
+  void _toggleListening() {
+    if (!_isSpeechInitialized) {
+      _showSnackBar("Speech recognition not available");
+      return;
+    }
+
+    if (_voiceService.isListening) {
+      _voiceService.stopListening();
+      setState(() {});
+    } else {
+      _voiceService.startListening((text) {
+        setState(() {
+          _inputController.text = text;
+        });
+      });
+      setState(() {});
+    }
+  }
+
+  Future<void> _downloadPdf() async {
+    final title = _inputController.text.trim().isEmpty
+        ? "Logicaly AI Notes"
+        : _inputController.text.trim();
+    final content = _notesController.text.trim();
+
+    if (content.isEmpty) {
+      _showSnackBar("Generate notes first before downloading");
+      return;
+    }
+
+    try {
+      await _pdfService.generateAndSavePdf(title: title, content: content);
+    } catch (e) {
+      _showSnackBar("Failed to download PDF: $e");
+    }
+  }
+
+  Future<void> _confirmDelete(String noteId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Note"),
+        content: const Text("Are you sure you want to delete this note?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _firestoreService.deleteNote(noteId);
+      _showSnackBar("Note deleted");
+    }
+  }
+
+  // ---------------- UI COMPONENTS ----------------
+
+  Widget _buildInputOption({
     required IconData icon,
     required String text,
     required Color iconColor,
     VoidCallback? onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue.shade50.withOpacity(0.5)),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: iconColor, size: 18),
+            Icon(icon, color: iconColor, size: 16),
             const SizedBox(width: 6),
             Text(
               text,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.blue.shade900.withOpacity(0.8),
+              ),
             ),
           ],
         ),
@@ -273,25 +425,24 @@ class _SmartNotes extends State<SmartNotes> {
   Widget _buildUploadedFileCard() {
     final uploadedFile = _uploadedFile;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              uploadedFile?.isImage == true
-                  ? Icons.image_outlined
-                  : Icons.insert_drive_file_outlined,
+            child: const Icon(
+              Icons.picture_as_pdf,
               color: Colors.red,
-              size: 32,
+              size: 28,
             ),
           ),
           const SizedBox(width: 14),
@@ -300,24 +451,21 @@ class _SmartNotes extends State<SmartNotes> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  uploadedFile?.fileName ?? "No file uploaded",
+                  uploadedFile?.fileName ?? "Cryptography Notes.pdf",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   uploadedFile == null
-                      ? "Upload any file except audio/video"
-                      : uploadedFile.isImage
-                      ? "Image file - Groq vision will read it"
-                      : uploadedFile.hasReadableText
-                      ? "Readable text added to input"
-                      : "Selected, but no readable text found",
-                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                      ? "82 pages - 1.9 MB - PDF"
+                      : "${uploadedFile.isImage ? "Image" : "PDF"} - ${uploadedFile.fileName.split('.').last.toUpperCase()}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
             ),

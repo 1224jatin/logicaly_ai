@@ -206,6 +206,20 @@ class FirestoreService {
     });
   }
 
+  Stream<List<Map<String, dynamic>>> notesStream({String? uid}) {
+    final userId = _requiredUid(uid);
+    return _client
+        .from("notes")
+        .stream(primaryKey: ["id"])
+        .eq("user_id", userId)
+        .order("created_at", ascending: false)
+        .map((rows) => rows.map(_normalizeNote).toList());
+  }
+
+  Future<void> deleteNote(String noteId) async {
+    await _client.from("notes").delete().eq("id", noteId);
+  }
+
   Future<void> addActivity({
     required String title,
     required String subtitle,
@@ -273,6 +287,15 @@ class FirestoreService {
       "quizzId": row["id"]?.toString() ?? "",
       "quizz": row["quiz"] as String? ?? "",
       "quizzanswer": row["quiz_answer"] as String? ?? "",
+    };
+  }
+
+  Map<String, dynamic> _normalizeNote(Map<String, dynamic> row) {
+    return {
+      "noteId": row["id"]?.toString() ?? "",
+      "input": row["input"] as String? ?? "",
+      "generatedNote": row["generated_note"] as String? ?? "",
+      "createdAt": row["created_at"]?.toString() ?? "",
     };
   }
 

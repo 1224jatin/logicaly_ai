@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logicaly_ai_project/views/navigation_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -99,8 +100,8 @@ class _OtpScreen extends State<OtpScreen> {
                   const SizedBox(height: 18),
 
                   Center(
-                    child: Image.asset(
-                      "assets/images/logo/logicaly_icon_logo_.png",
+                    child: SvgPicture.asset(
+                      "assets/vectors/logo.svg",
                       height: 150,
                     ),
                   ),

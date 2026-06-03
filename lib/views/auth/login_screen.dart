@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logicaly_ai_project/views/auth/sign_up_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -39,8 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Robot Logo
                 Center(
-                  child: Image.asset(
-                    "assets/images/logo/logicaly_icon_logo_.png",
+                  child: SvgPicture.asset(
+                    "assets/vectors/logo.svg",
                     height: 160,
                   ),
                 ),
