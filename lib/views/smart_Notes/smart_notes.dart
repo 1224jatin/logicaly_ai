@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/services/ai_services.dart';
-import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/supabase_service.dart';
 import 'package:logicaly_ai_project/services/pdf_service.dart';
 import 'package:logicaly_ai_project/services/study_file_service.dart';
 import 'package:logicaly_ai_project/services/voice_service.dart';
@@ -14,7 +14,7 @@ class SmartNotes extends StatefulWidget {
 }
 
 class _SmartNotes extends State<SmartNotes> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService();
   final AiService _aiService = AiService();
   final StudyFileService _studyFileService = StudyFileService();
   final PdfService _pdfService = PdfService();
@@ -246,7 +246,7 @@ class _SmartNotes extends State<SmartNotes> {
               const SizedBox(height: 16),
 
               StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _firestoreService.notesStream(),
+                stream: _supabaseService.notesStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -336,11 +336,13 @@ class _SmartNotes extends State<SmartNotes> {
       _voiceService.stopListening();
       setState(() {});
     } else {
-      _voiceService.startListening((text) {
-        setState(() {
-          _inputController.text = text;
-        });
-      });
+      _voiceService.startListening(
+        onResult: (text) {
+          setState(() {
+            _inputController.text = text;
+          });
+        },
+      );
       setState(() {});
     }
   }
@@ -380,7 +382,7 @@ class _SmartNotes extends State<SmartNotes> {
     );
 
     if (confirm == true) {
-      await _firestoreService.deleteNote(noteId);
+      await _supabaseService.deleteNote(noteId);
       _showSnackBar("Note deleted");
     }
   }
@@ -496,11 +498,11 @@ class _SmartNotes extends State<SmartNotes> {
               imageMimeType: uploadedFile.mimeType,
             );
       _notesController.text = generated;
-      await _firestoreService.addNote(
+      await _supabaseService.addNote(
         input: input.isEmpty ? uploadedFile?.fileName ?? "Uploaded file" : input,
         generatedNote: generated,
       );
-      await _firestoreService.addActivity(
+      await _supabaseService.addActivity(
         title: "Smart notes generated",
         subtitle: input.isEmpty ? uploadedFile?.fileName ?? "Uploaded file" : input,
       );
@@ -558,8 +560,8 @@ class _SmartNotes extends State<SmartNotes> {
     final title = input.isEmpty
         ? _uploadedFile?.fileName ?? "Manual note"
         : input;
-    await _firestoreService.addNote(input: title, generatedNote: notes);
-    await _firestoreService.addActivity(
+    await _supabaseService.addNote(input: title, generatedNote: notes);
+    await _supabaseService.addActivity(
       title: "Notes saved",
       subtitle: title,
     );

@@ -14,6 +14,7 @@ class NavigationBarScreen extends StatefulWidget {
 }
 
 class _NavigationBarScreen extends State<NavigationBarScreen> {
+  final List<int> _history = [2];
   final List<Widget> navigationScreens = [
     const SmartNotes(),
     const DoubtCameraScreen(),
@@ -23,30 +24,48 @@ class _NavigationBarScreen extends State<NavigationBarScreen> {
   ];
   int seletedIndex = 2;
 
+  Future<bool> _onWillPop() async {
+    if (_history.length > 1) {
+      setState(() {
+        _history.removeLast();
+        seletedIndex = _history.last;
+      });
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationScreens[seletedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: seletedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.black54,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.edit_outlined), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.crop_free), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: ""),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.note_add_outlined),
-            label: "",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.delete_outline), label: ""),
-        ],
-        onTap: (index) {
-          setState(() {
-            seletedIndex = index;
-          });
-        },
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        body: navigationScreens[seletedIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: seletedIndex,
+          selectedItemColor: Colors.blue,
+          unselectedItemColor: Colors.black54,
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.edit_outlined), label: ""),
+            BottomNavigationBarItem(icon: Icon(Icons.crop_free), label: ""),
+            BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: ""),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.note_add_outlined),
+              label: "",
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.delete_outline), label: ""),
+          ],
+          onTap: (index) {
+            if (seletedIndex != index) {
+              setState(() {
+                seletedIndex = index;
+                _history.remove(index);
+                _history.add(index);
+              });
+            }
+          },
+        ),
       ),
     );
   }

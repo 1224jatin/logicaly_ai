@@ -5,7 +5,7 @@ import 'package:logicaly_ai_project/models/quizz_model.dart';
 import 'package:logicaly_ai_project/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class FirestoreService {
+class SupabaseService {
   final SupabaseClient _client = Supabase.instance.client;
 
   String? get currentUid => _client.auth.currentUser?.id;

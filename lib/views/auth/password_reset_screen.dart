@@ -169,7 +169,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
     if (error is AuthException) {
       return error.message;
     }
-    return "Could not update password. Please open the reset link again.";
+    return "Could not update password. Please try again.";
   }
 
   void _showSnackBar(String message) {

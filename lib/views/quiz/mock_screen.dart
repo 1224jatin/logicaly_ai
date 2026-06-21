@@ -1,11 +1,11 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/services/ai_services.dart';
-import 'package:logicaly_ai_project/services/fire_store_services.dart';
-import 'package:mime/mime.dart';
+import 'package:logicaly_ai_project/services/supabase_service.dart';
+import 'package:logicaly_ai_project/services/study_file_service.dart';
 
 import '../../models/quizz_model.dart';
 
@@ -17,8 +17,9 @@ class MockTestScreen extends StatefulWidget {
 }
 
 class _MockTestScreen extends State<MockTestScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService();
   final AiService _aiService = AiService();
+  final StudyFileService _studyFileService = StudyFileService();
   final TextEditingController _syllabusController = TextEditingController();
 
   String difficulty = "Medium";
@@ -476,39 +477,19 @@ class _MockTestScreen extends State<MockTestScreen> {
   Future<void> _pickStudyFile() async {
     setState(() => _isReadingFile = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        allowMultiple: false,
-        withData: true,
-      );
-      if (result == null || result.files.isEmpty) {
+      final file = await _studyFileService.pickStudyFile();
+      if (file == null) {
         return;
       }
       if (!mounted) {
         return;
       }
 
-      final file = result.files.single;
-      final extension = _fileExtension(file.name);
-      final bytes = file.bytes;
-      if (bytes == null || bytes.isEmpty) {
-        _showSnackBar("Could not read the selected file");
-        return;
-      }
-
-      final mimeType =
-          lookupMimeType(file.name, headerBytes: bytes.take(16).toList()) ??
-          _mimeTypeForExtension(extension);
-      if (_isAudioOrVideoFile(extension: extension, mimeType: mimeType)) {
-        _showSnackBar("Audio and video files are not supported");
-        return;
-      }
-
-      if (_isImageFile(extension: extension, mimeType: mimeType)) {
+      if (file.isImage) {
         setState(() {
-          _uploadedFileName = file.name;
-          _uploadedFileMimeType = mimeType;
-          _uploadedImageBytes = bytes;
+          _uploadedFileName = file.fileName;
+          _uploadedFileMimeType = file.mimeType;
+          _uploadedImageBytes = file.imageBytes;
           _generatedTest = null;
           _isGeneratedTestSaved = false;
         });
@@ -516,11 +497,10 @@ class _MockTestScreen extends State<MockTestScreen> {
         return;
       }
 
-      final fileText = _extractReadableText(bytes);
-      if (fileText.isEmpty) {
+      if (!file.hasReadableText) {
         setState(() {
-          _uploadedFileName = file.name;
-          _uploadedFileMimeType = mimeType;
+          _uploadedFileName = file.fileName;
+          _uploadedFileMimeType = file.mimeType;
           _uploadedImageBytes = null;
           _generatedTest = null;
           _isGeneratedTestSaved = false;
@@ -534,13 +514,13 @@ class _MockTestScreen extends State<MockTestScreen> {
       final existingText = _syllabusController.text.trim();
       _syllabusController.text = [
         if (existingText.isNotEmpty) existingText,
-        "Uploaded file: ${file.name}",
-        fileText,
+        "Uploaded file: ${file.fileName}",
+        file.text,
       ].join("\n\n");
 
       setState(() {
-        _uploadedFileName = file.name;
-        _uploadedFileMimeType = mimeType;
+        _uploadedFileName = file.fileName;
+        _uploadedFileMimeType = file.mimeType;
         _uploadedImageBytes = null;
         _generatedTest = null;
         _isGeneratedTestSaved = false;
@@ -569,6 +549,7 @@ class _MockTestScreen extends State<MockTestScreen> {
       _generatedTest = null;
       _isGeneratedTestSaved = false;
     });
+    _showSnackBar("Ready for a new test");
   }
 
   Future<void> _generateQuickTest() async {
@@ -586,10 +567,10 @@ class _MockTestScreen extends State<MockTestScreen> {
       _generatedTest = null;
       _isGeneratedTestSaved = false;
     });
-    await _generateTest();
+    await _generateTest(fallbackTest: _quickTestFallback());
   }
 
-  Future<void> _generateTest() async {
+  Future<void> _generateTest({String? fallbackTest}) async {
     final syllabus = _syllabusController.text.trim();
     final uploadedImageBytes = _uploadedImageBytes;
     if (syllabus.isEmpty && uploadedImageBytes == null) {
@@ -624,17 +605,29 @@ class _MockTestScreen extends State<MockTestScreen> {
               focusWeakAreas: focusWeakAreas,
             );
 
-      await _saveTest(generatedTest);
-
       if (!mounted) {
         return;
       }
       setState(() {
         _generatedTest = generatedTest;
-        _isGeneratedTestSaved = true;
+        _isGeneratedTestSaved = false;
       });
       _showSnackBar("Mock test generated");
+      unawaited(_saveGeneratedTestSilently(generatedTest));
     } catch (error) {
+      debugPrint("Mock test generation failed: $error");
+      if (fallbackTest != null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _generatedTest = fallbackTest;
+          _isGeneratedTestSaved = false;
+        });
+        _showSnackBar("Quick test generated");
+        unawaited(_saveGeneratedTestSilently(fallbackTest));
+        return;
+      }
       _showSnackBar("Could not generate test: $error");
     } finally {
       if (mounted) {
@@ -661,10 +654,24 @@ class _MockTestScreen extends State<MockTestScreen> {
     }
   }
 
+  Future<void> _saveGeneratedTestSilently(String generatedTest) async {
+    try {
+      await _saveTest(generatedTest);
+      if (mounted) {
+        setState(() => _isGeneratedTestSaved = true);
+      }
+    } catch (error) {
+      debugPrint("Mock test auto-save failed: $error");
+      if (mounted) {
+        setState(() => _isGeneratedTestSaved = false);
+      }
+    }
+  }
+
   Future<void> _saveTest(String generatedTest) async {
     final syllabus = _syllabusController.text.trim();
     final title = _uploadedFileName ?? _previewText(syllabus);
-    await _firestoreService.addQuizz(
+    await _supabaseService.addQuizz(
       QuizzModel(
         quizzId: "",
         quizz:
@@ -672,8 +679,8 @@ class _MockTestScreen extends State<MockTestScreen> {
         quizzanswer: generatedTest,
       ),
     );
-    await _firestoreService.incrementTestsTaken();
-    await _firestoreService.addActivity(
+    await _supabaseService.incrementTestsTaken();
+    await _supabaseService.addActivity(
       title: "Mock test generated",
       subtitle: title,
     );
@@ -681,109 +688,82 @@ class _MockTestScreen extends State<MockTestScreen> {
 
   String _previewText(String value) {
     final compact = value.replaceAll(RegExp(r"\s+"), " ").trim();
+    if (compact.isEmpty) {
+      return "Quick Mock Test";
+    }
     if (compact.length <= 80) {
       return compact;
     }
     return "${compact.substring(0, 80)}...";
   }
 
-  String _fileExtension(String fileName) {
-    final dotIndex = fileName.lastIndexOf(".");
-    if (dotIndex == -1 || dotIndex == fileName.length - 1) {
-      return "";
-    }
-    return fileName.substring(dotIndex + 1).toLowerCase();
-  }
+  String _quickTestFallback() {
+    return """
+Quick Mock Test: Data Structures
 
-  bool _isAudioOrVideoFile({
-    required String extension,
-    required String mimeType,
-  }) {
-    if (mimeType.startsWith("audio/") || mimeType.startsWith("video/")) {
-      return true;
-    }
+Duration: 60 minutes
+Difficulty: Medium
 
-    const blockedExtensions = {
-      "3g2",
-      "3gp",
-      "aac",
-      "aiff",
-      "amr",
-      "avi",
-      "flac",
-      "m4a",
-      "m4v",
-      "mkv",
-      "mov",
-      "mp3",
-      "mp4",
-      "mpeg",
-      "mpg",
-      "ogg",
-      "opus",
-      "wav",
-      "webm",
-      "wma",
-      "wmv",
-    };
-    return blockedExtensions.contains(extension);
-  }
+Section A: MCQs
 
-  bool _isImageFile({required String extension, required String mimeType}) {
-    if (mimeType.startsWith("image/")) {
-      return true;
-    }
+1. Which data structure follows LIFO order?
+A. Queue
+B. Stack
+C. Array
+D. Graph
 
-    const imageExtensions = {
-      "bmp",
-      "gif",
-      "heic",
-      "heif",
-      "jpeg",
-      "jpg",
-      "png",
-      "webp",
-    };
-    return imageExtensions.contains(extension);
-  }
+2. What is the average time complexity of binary search on a sorted array?
+A. O(1)
+B. O(log n)
+C. O(n)
+D. O(n log n)
 
-  String _mimeTypeForExtension(String extension) {
-    switch (extension) {
-      case "bmp":
-        return "image/bmp";
-      case "gif":
-        return "image/gif";
-      case "heic":
-        return "image/heic";
-      case "heif":
-        return "image/heif";
-      case "jpg":
-      case "jpeg":
-        return "image/jpeg";
-      case "png":
-        return "image/png";
-      case "webp":
-        return "image/webp";
-      default:
-        return "application/octet-stream";
-    }
-  }
+3. Which traversal visits the root node between the left and right subtree?
+A. Preorder
+B. Inorder
+C. Postorder
+D. Level order
 
-  String _extractReadableText(Uint8List bytes) {
-    final text = utf8.decode(bytes, allowMalformed: true).trim();
-    if (text.isEmpty) {
-      return "";
-    }
+4. Which structure is best suited for breadth-first search?
+A. Stack
+B. Queue
+C. Hash map
+D. Heap
 
-    final printableCharacters = text.runes.where((rune) {
-      return rune == 9 || rune == 10 || rune == 13 || rune >= 32;
-    }).length;
-    final printableRatio = printableCharacters / text.runes.length;
-    if (printableRatio < 0.85) {
-      return "";
-    }
+5. What does a hash table primarily optimize?
+A. Sequential access
+B. Random key-based lookup
+C. Tree balancing
+D. Recursive traversal
 
-    return text;
+Section B: Coding
+
+6. Write a function to reverse an array in-place.
+
+7. Implement a stack using two queues.
+
+8. Given a linked list, detect whether it contains a cycle.
+
+9. Write a recursive function to compute the height of a binary tree.
+
+10. Given an unsorted array, return whether any two numbers sum to a target.
+
+Answer Key
+
+1. B
+2. B
+3. B
+4. B
+5. B
+
+Coding Approach Hints
+
+6. Use two pointers from both ends and swap while left < right.
+7. Use one queue for storage and rotate elements after each push, or make pop costly with a second queue.
+8. Use Floyd's slow and fast pointer technique.
+9. Height is 1 + max(left subtree height, right subtree height).
+10. Use a hash set to track complements in O(n) time.
+""".trim();
   }
 
   void _showSnackBar(String message) {

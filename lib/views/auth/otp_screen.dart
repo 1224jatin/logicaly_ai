@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:logicaly_ai_project/views/navigation_bar.dart';
+import 'package:logicaly_ai_project/views/auth/login_screen.dart';
+import 'package:logicaly_ai_project/views/auth/password_reset_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_services.dart';
@@ -13,6 +14,7 @@ class OtpScreen extends StatefulWidget {
   final String? userName;
   final String? email;
   final String? password;
+  final bool isPasswordReset;
 
   const OtpScreen({
     super.key,
@@ -20,6 +22,7 @@ class OtpScreen extends StatefulWidget {
     this.userName,
     this.email,
     this.password,
+    this.isPasswordReset = false,
   });
 
   @override
@@ -27,11 +30,8 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _OtpScreen extends State<OtpScreen> {
-  final List<TextEditingController> _controllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  late final List<TextEditingController> _controllers;
+  late final List<FocusNode> _focusNodes;
   bool _isLoading = false;
 
   late String _currentOtp;
@@ -41,6 +41,12 @@ class _OtpScreen extends State<OtpScreen> {
   @override
   void initState() {
     super.initState();
+    final pinLength = widget.isPasswordReset ? 6 : 4;
+    _controllers = List.generate(
+      pinLength,
+      (_) => TextEditingController(),
+    );
+    _focusNodes = List.generate(pinLength, (_) => FocusNode());
     _currentOtp = widget.sentOtp;
     _startTimer();
   }
@@ -120,10 +126,12 @@ class _OtpScreen extends State<OtpScreen> {
 
                   const SizedBox(height: 10),
 
-                  RichText(
+                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      text: "We sent a 4-digit OTP to ",
+                      text: widget.isPasswordReset
+                          ? "We sent a 6-digit code to "
+                          : "We sent a 4-digit OTP to ",
                       style: const TextStyle(color: Colors.grey, fontSize: 14),
                       children: [
                         TextSpan(
@@ -148,19 +156,27 @@ class _OtpScreen extends State<OtpScreen> {
 
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final fieldWidth = ((constraints.maxWidth - 36) / 4)
-                          .clamp(44.0, 64.0);
+                      final pinLength = widget.isPasswordReset ? 6 : 4;
+                      // Calculate total gap between fields
+                      final totalGap = (pinLength - 1) * 8;
+                      final fieldWidth = ((constraints.maxWidth - totalGap) / pinLength)
+                          .clamp(40.0, 64.0);
 
                       return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
                           _controllers.length,
-                          (index) => _OtpDigitField(
-                            width: fieldWidth,
-                            controller: _controllers[index],
-                            focusNode: _focusNodes[index],
-                            onChanged: (value) =>
-                                _handleDigitChange(value, index),
+                          (index) => Padding(
+                            padding: EdgeInsets.only(
+                              right: index == _controllers.length - 1 ? 0 : 8,
+                            ),
+                            child: _OtpDigitField(
+                              width: fieldWidth,
+                              controller: _controllers[index],
+                              focusNode: _focusNodes[index],
+                              onChanged: (value) =>
+                                  _handleDigitChange(value, index),
+                            ),
                           ),
                         ),
                       );
@@ -251,6 +267,32 @@ class _OtpScreen extends State<OtpScreen> {
 
     setState(() => _isLoading = true);
 
+    if (widget.isPasswordReset) {
+      try {
+        await Supabase.instance.client.auth.signInWithOtp(
+          email: widget.email!,
+          shouldCreateUser: false,
+        );
+        _startTimer();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("A new reset code has been sent.")),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to resend code: $e")),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+      return;
+    }
+
     final otpService = OtpServices();
     final newOtp = otpService.generateOtp();
     final success = await otpService.sendOtp(widget.email!, newOtp);
@@ -276,6 +318,43 @@ class _OtpScreen extends State<OtpScreen> {
 
   Future<void> _verifyOtp() async {
     final enteredOtp = _controllers.map((controller) => controller.text).join();
+
+    if (widget.isPasswordReset) {
+      FocusScope.of(context).unfocus();
+      setState(() => _isLoading = true);
+      try {
+        final response = await Supabase.instance.client.auth.verifyOTP(
+          email: widget.email!,
+          token: enteredOtp,
+          type: OtpType.email,
+        );
+
+        if (response.session == null) {
+          throw Exception("Verification failed: Session not established.");
+        }
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PasswordResetScreen(),
+          ),
+        );
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_authErrorMessage(error))),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+      return;
+    }
+
     final isVerified = OtpServices().verifyOtp(_currentOtp, enteredOtp);
 
     if (!isVerified && _currentOtp.isNotEmpty) {
@@ -297,9 +376,25 @@ class _OtpScreen extends State<OtpScreen> {
           email: widget.email!,
           password: widget.password!,
         );
-      }
 
-      // No manual navigation here. AuthGate handles it.
+        // Explicitly sign out to stay on the login/auth flow as requested
+        await AuthService().signOut();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("User registered successfully. Please log in."),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Navigate back to the very beginning (AuthGate -> LoginScreen)
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => LoginScreen()),
+            (route) => false,
+          );
+        }
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -327,21 +422,34 @@ class _OtpScreen extends State<OtpScreen> {
   }
 
   String _authErrorMessage(Object error) {
+    debugPrint("Signup error details (full): $error");
+    final errorStr = error.toString().toLowerCase();
+
+    // Specific Supabase error codes for better matching
+    if (error is AuthException) {
+      if (error.statusCode == '422' || error.message.contains('already registered')) {
+        return "This email is already registered. Please log in instead.";
+      }
+    }
+
+    if (errorStr.contains("socketexception") ||
+        errorStr.contains("failed host lookup") ||
+        errorStr.contains("handshake_exception") ||
+        errorStr.contains("connection timed out")) {
+      return "Network error. Supabase might be unreachable. Please try again.";
+    }
+
     if (error is AuthException) {
       final message = error.message.toLowerCase();
-      if (message.contains("already registered") ||
-          message.contains("already exists")) {
-          return "This email is already registered";
-      }
       if (message.contains("invalid email")) {
-        return "Please enter a valid email address";
+        return "Please enter a valid email address.";
       }
-      if (message.contains("password")) {
-        return "Password is too weak";
+      if (message.contains("weak-password") || (message.contains("password") && message.contains("short"))) {
+        return "Password is too weak. Use at least 6 characters.";
       }
       return error.message;
     }
-    return "Could not create account. Please try again.";
+    return "Account creation failed. Please check your internet and try again.";
   }
 }
 

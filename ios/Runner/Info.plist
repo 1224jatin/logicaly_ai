@@ -37,8 +37,12 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Logicaly AI uses the camera to scan study doubts and solve them with AI.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Logicaly AI uses the microphone to turn your spoken questions into chat text.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Logicaly AI uses selected images to scan study doubts and solve them with AI.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Logicaly AI uses speech recognition to fill the chat box from your voice.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

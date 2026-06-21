@@ -33,6 +33,7 @@ dependencies:
   provider: ^6.1.2
   supabase_flutter: ^2.8.0
   google_fonts: ^6.2.1
+  camera: ^0.11.0+2
   image_picker: ^1.1.2
   file_picker: ^8.1.7
   syncfusion_flutter_pdf: ^26.1.35

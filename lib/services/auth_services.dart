@@ -5,12 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logicaly_ai_project/models/profile_model.dart';
 import 'package:logicaly_ai_project/models/user_model.dart';
-import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
   final SupabaseClient _client = Supabase.instance.client;
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService();
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
@@ -56,11 +56,11 @@ class AuthService {
     }
 
     try {
-      await _firestoreService.addUser(
+      await _supabaseService.addUser(
         UserModel(uId: user.id, userName: trimmedName, email: trimmedEmail),
         uid: user.id,
       );
-      await _firestoreService.addProfile(
+      await _supabaseService.addProfile(
         ProfileModel(
           uid: user.id,
           name: trimmedName,

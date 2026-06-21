@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/ai_message_model.dart';
 import 'package:logicaly_ai_project/services/auth_services.dart';
 import 'package:logicaly_ai_project/services/ai_services.dart';
-import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/supabase_service.dart';
+import 'package:logicaly_ai_project/services/voice_service.dart';
 import 'package:logicaly_ai_project/views/profile/profile.dart';
 
 class ChatBot extends StatefulWidget {
@@ -15,13 +16,17 @@ class ChatBot extends StatefulWidget {
 }
 
 class _ChatBot extends State<ChatBot> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService();
   final AiService _aiService = AiService();
+  final VoiceService _voiceService = VoiceService();
   final TextEditingController _messageController = TextEditingController();
   bool _isSending = false;
+  bool _isListening = false;
+  bool _isVoiceReady = false;
 
   @override
   void dispose() {
+    _voiceService.stopListening();
     _messageController.dispose();
     super.dispose();
   }
@@ -48,9 +53,21 @@ class _ChatBot extends State<ChatBot> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.menu, size: 26),
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: "Chat history",
+                        onPressed: _showChatHistory,
+                        icon: const Icon(Icons.history, size: 28, color: Colors.black87),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        "Logicaly AI",
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                   InkWell(
-                    child: const Icon(Icons.person_outline, size: 26),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -59,13 +76,18 @@ class _ChatBot extends State<ChatBot> {
                         ),
                       );
                     },
+                    child: const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.person_outline, size: 24, color: Colors.black87),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
               Expanded(
                 child: StreamBuilder<List<AiMessageModel>>(
-                  stream: _firestoreService.messagesStream(),
+                  stream: _supabaseService.messagesStream(),
                   builder: (context, snapshot) {
                     final messages = snapshot.data ?? [];
                     if (messages.isEmpty) {
@@ -160,39 +182,218 @@ class _ChatBot extends State<ChatBot> {
 
   Widget _buildInputBox() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      margin: const EdgeInsets.only(bottom: 8),
+      height: 64,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         children: [
-          const Icon(Icons.add, color: Colors.blue),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
+          const CircleAvatar(
+            radius: 16,
+            backgroundColor: Color(0xFFF1F5F9),
+            child: Icon(Icons.add, color: Colors.blue, size: 20),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: _messageController,
+              style: const TextStyle(fontSize: 15),
               decoration: const InputDecoration(
                 hintText: "Ask Anything",
+                hintStyle: TextStyle(color: Colors.grey),
                 border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 10),
               ),
               onSubmitted: (_) => _sendMessage(),
             ),
           ),
+          // Voice Input Button
+          IconButton(
+            tooltip: _isListening ? "Stop listening" : "Voice input",
+            onPressed: _isSending ? null : _toggleListening,
+            icon: CircleAvatar(
+              radius: 20,
+              backgroundColor: _isListening ? Colors.red.withOpacity(0.1) : Colors.transparent,
+              child: Icon(
+                _isListening ? Icons.mic : Icons.mic_none_rounded,
+                color: _isListening ? Colors.red : Colors.blue.shade700,
+                size: 24,
+              ),
+            ),
+          ),
+          // Send Button
           IconButton(
             onPressed: _isSending ? null : _sendMessage,
-            icon: _isSending
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(Icons.send, color: Colors.blue.shade700),
+            icon: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF3563E9),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: _isSending
+                  ? const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 22),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showChatHistory() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      "Chat History",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: StreamBuilder<List<AiMessageModel>>(
+                      stream: _supabaseService.messagesStream(),
+                      builder: (context, snapshot) {
+                        final messages = snapshot.data ?? [];
+                        if (messages.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Text("No chat history yet."),
+                            ),
+                          );
+                        }
+
+                        // Group by sessions if possible, or just unique messages
+                        return ListView.separated(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          itemCount: messages.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final message = messages[index];
+                            final isUser = message.senderId != "ai";
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: isUser ? Colors.blue.shade50 : Colors.purple.shade50,
+                                child: Icon(
+                                  isUser ? Icons.person_outline : Icons.smart_toy_outlined,
+                                  color: isUser ? Colors.blue : Colors.purple,
+                                  size: 20,
+                                ),
+                              ),
+                              title: Text(
+                                isUser ? "You" : "Logicaly AI",
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              ),
+                              subtitle: Text(
+                                message.message,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                // Potentially scroll to this message in the main chat
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      _voiceService.stopListening();
+      setState(() => _isListening = false);
+      return;
+    }
+
+    if (!_isVoiceReady) {
+      _isVoiceReady = await _voiceService.initialize();
+      if (!_isVoiceReady) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Microphone permission is required.")),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() => _isListening = true);
+    _voiceService.startListening(
+      onResult: (recognizedWords) {
+        if (!mounted || recognizedWords.trim().isEmpty) {
+          return;
+        }
+        _messageController.text = recognizedWords;
+        _messageController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _messageController.text.length),
+        );
+      },
+      onStatus: (status) {
+        if (!mounted || status == "listening") {
+          return;
+        }
+        setState(() => _isListening = false);
+      },
     );
   }
 
@@ -237,8 +438,8 @@ class _ChatBot extends State<ChatBot> {
     _messageController.clear();
     setState(() => _isSending = true);
     try {
-      final history = await _firestoreService.getMessages();
-      await _firestoreService.addMessage(
+      final history = await _supabaseService.getMessages();
+      await _supabaseService.addMessage(
         AiMessageModel(
           messageId: "",
           senderId: uid,
@@ -246,14 +447,12 @@ class _ChatBot extends State<ChatBot> {
           message: text,
         ),
       );
-      String aiReply;
-      try {
-        aiReply = await _aiService.askChat(userMessage: text, history: history);
-      } catch (error) {
-        aiReply = "I could not generate a reply right now. $error";
-      }
+      final aiReply = await _aiService.askChat(
+        userMessage: text,
+        history: history,
+      );
 
-      await _firestoreService.addMessage(
+      await _supabaseService.addMessage(
         AiMessageModel(
           messageId: "",
           senderId: "ai",
@@ -261,11 +460,11 @@ class _ChatBot extends State<ChatBot> {
           message: aiReply,
         ),
       );
-      await _firestoreService.addActivity(title: "Asked AI", subtitle: text);
+      await _supabaseService.addActivity(title: "Asked AI", subtitle: text);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Could not send message: $error")),
+          SnackBar(content: Text("Could not generate reply: $error")),
         );
       }
     } finally {

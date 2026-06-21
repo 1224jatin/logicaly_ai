@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/flashcard_model.dart';
-import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/supabase_service.dart';
 
 class ManualFlashcards extends StatefulWidget {
   const ManualFlashcards({super.key});
@@ -12,7 +12,7 @@ class ManualFlashcards extends StatefulWidget {
 }
 
 class _ManualFlashcards extends State<ManualFlashcards> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService();
   final TextEditingController addQuestion = TextEditingController();
   final TextEditingController addAnswer = TextEditingController();
 
@@ -39,7 +39,7 @@ class _ManualFlashcards extends State<ManualFlashcards> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: StreamBuilder<List<FlashcardModel>>(
-            stream: _firestoreService.flashcardsStream(),
+            stream: _supabaseService.flashcardsStream(),
             builder: (context, snapshot) {
               final cards = snapshot.data ?? [];
               if (currentCard >= cards.length && cards.isNotEmpty) {
@@ -317,14 +317,14 @@ class _ManualFlashcards extends State<ManualFlashcards> {
                   return;
                 }
 
-                await _firestoreService.addFlashcard(
+                await _supabaseService.addFlashcard(
                   FlashcardModel(
                     cardId: "",
                     cardQues: addQuestion.text.trim(),
                     cardAns: addAnswer.text.trim(),
                   ),
                 );
-                await _firestoreService.addActivity(
+                await _supabaseService.addActivity(
                   title: "Flashcard created",
                   subtitle: addQuestion.text.trim(),
                 );

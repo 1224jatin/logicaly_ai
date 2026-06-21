@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logicaly_ai_project/views/auth/sign_up_screen.dart';
+import 'package:logicaly_ai_project/views/auth/otp_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_services.dart';
@@ -71,100 +72,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 40),
 
-                //-----------Emaill----------
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Email",
-                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                  ),
-                ),
-
+                _buildFieldLabel("Email"),
                 const SizedBox(height: 10),
-
-                Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 1,
-                        height: 30,
-                        color: Colors.grey.shade300,
-                      ),
-                      //Email Controller
-                      Expanded(
-                        child: TextField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-
-                          decoration: const InputDecoration(
-                            hintText: "abcdfg@gmail.com",
-                            hintStyle: TextStyle(color: Colors.grey),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                _buildTextField(
+                  controller: emailController,
+                  hintText: "abcdfg@gmail.com",
+                  keyboardType: TextInputType.emailAddress,
                 ),
+
+                const SizedBox(height: 20),
+
+                _buildFieldLabel("Password"),
                 const SizedBox(height: 10),
-                //-----------passworddd----------
-
-                // Phone Number Label
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Password",
-                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                  ),
-                ),
-
-                // Phone Number Field
-                Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      //Password Controller
-                      Expanded(
-                        child: TextField(
-                          controller: passwordController,
-                          keyboardType: TextInputType.visiblePassword,
-                          obscureText: _obscurePassword,
-
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                            ),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                _buildTextField(
+                  controller: passwordController,
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
                   ),
                 ),
 
@@ -322,10 +253,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isResettingPassword = true);
     try {
       await AuthService().sendPasswordResetEmail(email: email);
-      if (!mounted) {
-        return;
-      }
-      _showSnackBar("Reset link sent. Open it to create a new password.");
+      if (!mounted) return;
+      _showSnackBar("Reset link sent to your email.");
     } catch (error) {
       if (mounted) {
         _showSnackBar(_resetPasswordErrorMessage(error));
@@ -337,6 +266,45 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _buildFieldLabel(String label) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    String? hintText,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    Widget? suffixIcon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        style: const TextStyle(fontSize: 15),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          suffixIcon: suffixIcon,
+        ),
+      ),
+    );
+  }
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(
       context,
@@ -344,28 +312,50 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _authErrorMessage(Object error) {
+    debugPrint("Login error details: $error");
+    final errorStr = error.toString().toLowerCase();
+
+    if (errorStr.contains("socketexception") ||
+        errorStr.contains("failed host lookup") ||
+        errorStr.contains("connection timed out")) {
+      return "Network error. Please check your data or Wi-Fi.";
+    }
+
     if (error is AuthException) {
       final message = error.message.toLowerCase();
-      if (message.contains("invalid login credentials")) {
-        return "Invalid email or password";
+      if (message.contains("invalid login credentials") ||
+          message.contains("invalid_credentials") ||
+          message.contains("wrong-password")) {
+        return "Incorrect email or password. Please try again.";
       }
-      if (message.contains("invalid email")) {
-        return "Please enter a valid email address";
+      if (message.contains("user not found") || message.contains("invalid-email")) {
+        return "No account found with this email. Please sign up.";
       }
       if (message.contains("email not confirmed")) {
-        return "Please confirm your email before logging in";
+        return "Please verify your email address before logging in.";
       }
       return error.message;
     }
 
-    return "Login failed. Please try again.";
+    return "Login failed. Please check your connection and try again.";
   }
 
   String _resetPasswordErrorMessage(Object error) {
+    debugPrint("Reset error details: $error");
+    final errorStr = error.toString().toLowerCase();
+
+    if (errorStr.contains("socketexception") ||
+        errorStr.contains("failed host lookup")) {
+      return "No internet connection.";
+    }
+
     if (error is AuthException) {
       final message = error.message.toLowerCase();
+      if (message.contains("user not found")) {
+        return "No account found with this email.";
+      }
       if (message.contains("invalid email")) {
-        return "Please enter a valid email address";
+        return "Please enter a valid email address.";
       }
       return error.message;
     }

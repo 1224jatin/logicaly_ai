@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/profile_model.dart';
 import 'package:logicaly_ai_project/services/auth_services.dart';
-import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/supabase_service.dart';
 import 'package:logicaly_ai_project/views/auth/login_screen.dart';
 
 class Profile extends StatefulWidget {
@@ -12,7 +12,7 @@ class Profile extends StatefulWidget {
 }
 
 class _Profile extends State<Profile> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class _Profile extends State<Profile> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: StreamBuilder<ProfileModel?>(
-            stream: _firestoreService.currentProfileStream(),
+            stream: _supabaseService.currentProfileStream(),
             builder: (context, snapshot) {
               final user = AuthService().currentUser;
               final profile = snapshot.data;
@@ -248,7 +248,7 @@ class _Profile extends State<Profile> {
 
   Widget _buildRecentActivity() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _firestoreService.activityStream(),
+      stream: _supabaseService.activityStream(),
       builder: (context, snapshot) {
         final activities = snapshot.data ?? [];
         if (activities.isEmpty) {
@@ -295,7 +295,7 @@ class _Profile extends State<Profile> {
                 return;
               }
               await AuthService().updateDisplayName(name);
-              await _firestoreService.updateCurrentProfile({"name": name});
+              await _supabaseService.updateCurrentProfile({"name": name});
               if (context.mounted) {
                 Navigator.pop(context);
               }
@@ -330,7 +330,7 @@ class _Profile extends State<Profile> {
               if (minutes == null || minutes <= 0) {
                 return;
               }
-              await _firestoreService.updateCurrentProfile({
+              await _supabaseService.updateCurrentProfile({
                 "dailyGoalMinutes": minutes,
               });
               if (context.mounted) {

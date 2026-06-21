@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/flashcard_model.dart';
 import 'package:logicaly_ai_project/services/ai_services.dart';
-import 'package:logicaly_ai_project/services/fire_store_services.dart';
+import 'package:logicaly_ai_project/services/supabase_service.dart';
 import 'package:logicaly_ai_project/services/study_file_service.dart';
 import 'package:logicaly_ai_project/views/flashcards/manual_flashcards.dart';
 
@@ -14,7 +14,7 @@ class FlashCard extends StatefulWidget {
 
 class _FlashCard extends State<FlashCard> {
   final AiService _aiService = AiService();
-  final FirestoreService _firestoreService = FirestoreService();
+  final SupabaseService _supabaseService = SupabaseService();
   final StudyFileService _studyFileService = StudyFileService();
   final TextEditingController _aiInputController = TextEditingController();
 
@@ -95,7 +95,7 @@ class _FlashCard extends State<FlashCard> {
 
   Widget _buildDeckSummary() {
     return StreamBuilder<List<FlashcardModel>>(
-      stream: _firestoreService.flashcardsStream(),
+      stream: _supabaseService.flashcardsStream(),
       builder: (context, snapshot) {
         final cards = snapshot.data ?? [];
         return Container(
@@ -280,7 +280,7 @@ class _FlashCard extends State<FlashCard> {
 
   Widget _buildRecentCards() {
     return StreamBuilder<List<FlashcardModel>>(
-      stream: _firestoreService.flashcardsStream(),
+      stream: _supabaseService.flashcardsStream(),
       builder: (context, snapshot) {
         final cards = snapshot.data ?? [];
         if (cards.isEmpty) {
@@ -392,9 +392,9 @@ class _FlashCard extends State<FlashCard> {
       }
 
       for (final card in cards) {
-        await _firestoreService.addFlashcard(card);
+        await _supabaseService.addFlashcard(card);
       }
-      await _firestoreService.addActivity(
+      await _supabaseService.addActivity(
         title: "AI flashcards created",
         subtitle: input.isEmpty ? uploadedFile?.fileName ?? "Uploaded file" : input,
       );

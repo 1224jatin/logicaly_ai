@@ -5,12 +5,14 @@ import 'package:logicaly_ai_project/models/ai_message_model.dart';
 import 'package:logicaly_ai_project/models/flashcard_model.dart';
 
 class AiService {
+  static const String _bundledGroqApiKey =
+      "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";
   static const String _apiKey = String.fromEnvironment(
-    "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",
-    defaultValue: "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",
+    "GROQ_API_KEY",
+    defaultValue: _bundledGroqApiKey,
   );
   static const String _chatModel = "llama-3.3-70b-versatile";
-  static const String _visionModel = "meta-llama/llama-4-scout-17b-16e-instruct";
+  static const String _visionModel = "llama-3.2-11b-vision-preview";
   static const String _endpoint =
       "https://api.groq.com/openai/v1/chat/completions";
 
@@ -245,40 +247,47 @@ class AiService {
       );
     }
 
-    final response = await http.post(
-      Uri.parse(_endpoint),
-      headers: {
-        "Authorization": "Bearer $_apiKey",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "model": model,
-        "messages": messages,
-        "temperature": 0.4,
-        "max_completion_tokens": maxTokens,
-        if (responseFormat != null) "response_format": responseFormat,
-      }),
-    );
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw AiServiceException(
-        "Groq request failed (${response.statusCode}): ${response.body}",
+    try {
+      final response = await http.post(
+        Uri.parse(_endpoint),
+        headers: {
+          "Authorization": "Bearer $_apiKey",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "model": model,
+          "messages": messages,
+          "temperature": 0.4,
+          "max_completion_tokens": maxTokens,
+          if (responseFormat != null) "response_format": responseFormat,
+        }),
       );
+
+    if (response.statusCode == 401) {
+      throw AiServiceException("Invalid or expired API key. Please check GROQ_API_KEY.");
+    } else if (response.statusCode == 429) {
+      throw AiServiceException("Rate limit reached. Please wait a moment.");
+    } else if (response.statusCode != 200) {
+      throw AiServiceException("Groq request failed (${response.statusCode}): ${response.body}");
     }
 
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    final choices = decoded["choices"] as List<dynamic>? ?? [];
-    if (choices.isEmpty) {
-      throw AiServiceException("Groq returned no choices.");
-    }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final choices = decoded["choices"] as List<dynamic>? ?? [];
+      if (choices.isEmpty) {
+        throw AiServiceException("No response from AI.");
+      }
 
-    final message = choices.first["message"] as Map<String, dynamic>;
-    final content = message["content"];
-    if (content is String && content.trim().isNotEmpty) {
-      return content.trim();
-    }
+      final message = choices.first["message"] as Map<String, dynamic>;
+      final content = message["content"];
+      if (content is String && content.trim().isNotEmpty) {
+        return content.trim();
+      }
 
-    throw AiServiceException("Groq returned an empty response.");
+      throw AiServiceException("Empty response received.");
+    } catch (e) {
+      if (e is AiServiceException) rethrow;
+      throw AiServiceException("Connection failed. Check your internet.");
+    }
   }
 
   String _extractJson(String value) {

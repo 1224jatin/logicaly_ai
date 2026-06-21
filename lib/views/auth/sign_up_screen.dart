@@ -69,132 +69,41 @@ class _SignUpScreen extends State<SignUpScreen> {
                   ],
                 ),
 
+                const SizedBox(height: 30),
+
+                _buildFieldLabel("Username"),
                 const SizedBox(height: 10),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Username",
-                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                  ),
+                _buildTextField(
+                  controller: userNameController,
+                  hintText: "Your name",
                 ),
-                Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      //---------Username Controller-----------
-                      Expanded(
-                        child: TextField(
-                          controller: userNameController,
-                          keyboardType: TextInputType.text,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+
+                const SizedBox(height: 20),
+
+                _buildFieldLabel("Email"),
                 const SizedBox(height: 10),
-
-                //-----------Emaill----------
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Email",
-                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                  ),
+                _buildTextField(
+                  controller: emailController,
+                  hintText: "abcdfg@gmail.com",
+                  keyboardType: TextInputType.emailAddress,
                 ),
 
-                Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 1,
-                        height: 30,
-                        color: Colors.grey.shade300,
-                      ),
-                      //Email Controller
-                      Expanded(
-                        child: TextField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
+                const SizedBox(height: 20),
 
-                          decoration: const InputDecoration(
-                            hintText: "abcdfg@gmail.com",
-                            hintStyle: TextStyle(color: Colors.grey),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildFieldLabel("Password"),
                 const SizedBox(height: 10),
-
-                //-----------passworddd----------
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Password",
-                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                  ),
-                ),
-
-                // Phone Number Field
-                Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      //Password Controller
-                      Expanded(
-                        child: TextField(
-                          controller: passwordController,
-                          keyboardType: TextInputType.visiblePassword,
-                          obscureText: _obscurePassword,
-
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                            ),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                _buildTextField(
+                  controller: passwordController,
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
                   ),
                 ),
 
@@ -302,6 +211,45 @@ class _SignUpScreen extends State<SignUpScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    String? hintText,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    Widget? suffixIcon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        style: const TextStyle(fontSize: 15),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          suffixIcon: suffixIcon,
+        ),
+      ),
+    );
   }
 
   void _showSnackBar(String message) {

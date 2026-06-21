@@ -5,14 +5,12 @@ import 'package:logicaly_ai_project/views/auth/password_reset_screen.dart';
 import 'package:logicaly_ai_project/views/navigation_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const String _supabaseUrl = "https://cgqlphczyvecbagvtmwe.supabase.co";
-const String _supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNncWxwaGN6eXZlY2JhZ3Z0bXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDgzODEsImV4cCI6MjA5NTUyNDM4MX0.9foGRT-o0fmOwynjy2t-J7BNzNQgYmjn3zQV5XUXHHo";
-const String _supabaseAnonKeyPlaceholder = "PASTE_SUPABASE_ANON_KEY_HERE";
+const String _supabaseUrl = "https://cbnpzpcyjydpcfyzzije.supabase.co";
+const String _supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNibnB6cGN5anlkcGNmeXp6aWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMjk4OTEsImV4cCI6MjA5NzYwNTg5MX0.1qQRLZSrpqQDoVWb_-i8rZdbQG4TrKJogM84aN7WPMo";
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (_supabaseAnonKey.isEmpty ||
-      _supabaseAnonKey == _supabaseAnonKeyPlaceholder) {
+  if (_supabaseAnonKey.isEmpty || _supabaseAnonKey.contains("PASTE")) {
     runApp(const MissingSupabaseConfigApp());
     return;
   }
