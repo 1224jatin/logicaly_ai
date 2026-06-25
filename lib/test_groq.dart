@@ -4,7 +4,8 @@ import 'dart:convert';
 
 void main() {
   test('Test Groq API Connection', () async {
-    const apiKey = String.fromEnvironment("GROQ_API_KEY");
+    const rawApiKey = String.fromEnvironment("GROQ_API_KEY");
+    final apiKey = _normalizedApiKey(rawApiKey);
     const endpoint = "https://api.groq.com/openai/v1/chat/completions";
     const model = "llama-3.3-70b-versatile";
 
@@ -36,4 +37,13 @@ void main() {
       print("Connection failed: $e");
     }
   });
+}
+
+String _normalizedApiKey(String value) {
+  final trimmed = value.trim();
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.substring(1, trimmed.length - 1).trim();
+  }
+  return trimmed;
 }

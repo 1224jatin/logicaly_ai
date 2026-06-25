@@ -326,7 +326,7 @@ class _OtpScreen extends State<OtpScreen> {
         final response = await Supabase.instance.client.auth.verifyOTP(
           email: widget.email!,
           token: enteredOtp,
-          type: OtpType.email,
+          type: OtpType.recovery,
         );
 
         if (response.session == null) {

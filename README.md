@@ -10,6 +10,12 @@ The AI chat and doubt scanner use Groq. Pass your key at build/run time:
 flutter run --dart-define=GROQ_API_KEY=your_groq_api_key
 ```
 
+For an APK that you share with testers, build it with the same define:
+
+```sh
+flutter build apk --release --dart-define=GROQ_API_KEY=your_groq_api_key
+```
+
 Do not commit API keys to source control. If a key has been shared publicly,
 rotate it in the Groq console before using the app.
 

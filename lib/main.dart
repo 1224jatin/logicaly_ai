@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/services/auth_services.dart';
 import 'package:logicaly_ai_project/views/auth/login_screen.dart';
@@ -66,37 +68,46 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  late final Stream<AuthState> _authStateStream;
+  late final StreamSubscription<AuthState> _authSubscription;
+  Session? _session;
+  bool _isPasswordRecovery = false;
 
   @override
   void initState() {
     super.initState();
-    _authStateStream = AuthService().authStateChanges;
+    _session = Supabase.instance.client.auth.currentSession;
+    _authSubscription = AuthService().authStateChanges.listen((authState) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _session = authState.session;
+        if (authState.event == AuthChangeEvent.passwordRecovery) {
+          _isPasswordRecovery = true;
+        } else if (authState.event == AuthChangeEvent.signedOut) {
+          _isPasswordRecovery = false;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: _authStateStream,
-      builder: (context, snapshot) {
-        // 1. Handle password recovery state
-        if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
-          return const PasswordResetScreen();
-        }
+    if (_isPasswordRecovery) {
+      return const PasswordResetScreen();
+    }
 
-        // 2. Determine if we have a valid session.
-        // We check the snapshot first, then fallback to the synchronous currentSession.
-        final session = snapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
+    if (_session != null) {
+      return const NavigationBarScreen();
+    }
 
-        if (session != null) {
-          return const NavigationBarScreen();
-        }
-
-        // 3. Fallback to Login screen if not authenticated.
-        // We don't need a waiting state here because Supabase.initialize was awaited in main(),
-        // so currentSession is already determined.
-        return const LoginScreen();
-      },
-    );
+    return const LoginScreen();
   }
 }
