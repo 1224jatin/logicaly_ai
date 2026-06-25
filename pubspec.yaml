@@ -68,6 +68,8 @@ dev_dependencies:
 flutter:
   assets:
     - assets/images/logo/logicaly_icon_logo_.png
+    - assets/images/logo/logicaly_app_icon.png
+    - assets/images/icons/
     - assets/vectors/
 
   # The following line ensures that the Material Icons font is

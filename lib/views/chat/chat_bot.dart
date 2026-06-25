@@ -20,6 +20,11 @@ class _ChatBot extends State<ChatBot> {
   final AiService _aiService = AiService();
   final VoiceService _voiceService = VoiceService();
   final TextEditingController _messageController = TextEditingController();
+  
+  // Track when the current app session started to hide previous chats
+  static final DateTime _sessionStartTime = DateTime.now();
+  late Stream<List<AiMessageModel>> _messagesStream;
+  
   bool _isSending = false;
   bool _isListening = false;
   bool _isVoiceReady = false;
@@ -34,6 +39,7 @@ class _ChatBot extends State<ChatBot> {
   @override
   void initState() {
     super.initState();
+    _messagesStream = _supabaseService.messagesStream(since: _sessionStartTime);
     final initialPrompt = widget.initialPrompt;
     if (initialPrompt != null && initialPrompt.trim().isNotEmpty) {
       _messageController.text = initialPrompt.trim();
@@ -87,7 +93,7 @@ class _ChatBot extends State<ChatBot> {
               const SizedBox(height: 20),
               Expanded(
                 child: StreamBuilder<List<AiMessageModel>>(
-                  stream: _supabaseService.messagesStream(),
+                  stream: _messagesStream,
                   builder: (context, snapshot) {
                     final messages = snapshot.data ?? [];
                     if (messages.isEmpty) {
@@ -264,94 +270,7 @@ class _ChatBot extends State<ChatBot> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 40,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      "Chat History",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: StreamBuilder<List<AiMessageModel>>(
-                      stream: _supabaseService.messagesStream(),
-                      builder: (context, snapshot) {
-                        final messages = snapshot.data ?? [];
-                        if (messages.isEmpty) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(24),
-                              child: Text("No chat history yet."),
-                            ),
-                          );
-                        }
-
-                        // Group by sessions if possible, or just unique messages
-                        return ListView.separated(
-                          controller: scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                          itemCount: messages.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final message = messages[index];
-                            final isUser = message.senderId != "ai";
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: isUser ? Colors.blue.shade50 : Colors.purple.shade50,
-                                child: Icon(
-                                  isUser ? Icons.person_outline : Icons.smart_toy_outlined,
-                                  color: isUser ? Colors.blue : Colors.purple,
-                                  size: 20,
-                                ),
-                              ),
-                              title: Text(
-                                isUser ? "You" : "Logicaly AI",
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                              ),
-                              subtitle: Text(
-                                message.message,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              onTap: () {
-                                Navigator.pop(context);
-                                // Potentially scroll to this message in the main chat
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => _ChatHistorySheet(supabaseService: _supabaseService),
     );
   }
 
@@ -472,5 +391,112 @@ class _ChatBot extends State<ChatBot> {
         setState(() => _isSending = false);
       }
     }
+  }
+}
+
+class _ChatHistorySheet extends StatefulWidget {
+  final SupabaseService supabaseService;
+
+  const _ChatHistorySheet({required this.supabaseService});
+
+  @override
+  State<_ChatHistorySheet> createState() => _ChatHistorySheetState();
+}
+
+class _ChatHistorySheetState extends State<_ChatHistorySheet> {
+  late final Stream<List<AiMessageModel>> _historyStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _historyStream = widget.supabaseService.messagesStream();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  "Chat History",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: StreamBuilder<List<AiMessageModel>>(
+                  stream: _historyStream,
+                  builder: (context, snapshot) {
+                    final messages = snapshot.data ?? [];
+                    if (messages.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text("No chat history yet."),
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      itemCount: messages.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isUser = message.senderId != "ai";
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isUser ? Colors.blue.shade50 : Colors.purple.shade50,
+                            child: Icon(
+                              isUser ? Icons.person_outline : Icons.smart_toy_outlined,
+                              color: isUser ? Colors.blue : Colors.purple,
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(
+                            isUser ? "You" : "Logicaly AI",
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            message.message,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

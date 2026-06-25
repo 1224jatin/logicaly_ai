@@ -48,18 +48,27 @@ class SupabaseService {
     });
   }
 
-  Stream<List<AiMessageModel>> messagesStream({String? uid}) {
+  Stream<List<AiMessageModel>> messagesStream({String? uid, DateTime? since}) {
     final userId = _requiredUid(uid);
-    return _client
+    var query = _client
         .from("messages")
         .stream(primaryKey: ["id"])
-        .eq("user_id", userId)
-        .order("created_at")
-        .map(
-          (rows) => rows
-              .map((row) => AiMessageModel.fromJson(_normalizeMessage(row)))
-              .toList(),
-        );
+        .eq("user_id", userId);
+    
+    // Note: Supabase realtime stream filtering is limited. 
+    // We will filter in the map function for better precision if needed,
+    // or just let the UI handle it.
+    
+    return query.order("created_at").map((rows) {
+      final messages = rows
+          .map((row) => AiMessageModel.fromJson(_normalizeMessage(row)))
+          .toList();
+      
+      if (since != null) {
+        return messages.where((m) => m.createdAt != null && m.createdAt!.isAfter(since)).toList();
+      }
+      return messages;
+    });
   }
 
   Future<List<AiMessageModel>> getMessages({String? uid}) async {
@@ -258,6 +267,7 @@ class SupabaseService {
       "senderId": row["sender_id"] as String? ?? "",
       "receiverId": row["receiver_id"] as String? ?? "",
       "message": row["message"] as String? ?? "",
+      "createdAt": row["created_at"]?.toString(),
     };
   }
 

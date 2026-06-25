@@ -46,15 +46,27 @@ class _NavigationBarScreen extends State<NavigationBarScreen> {
           selectedItemColor: Colors.blue,
           unselectedItemColor: Colors.black54,
           type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.edit_outlined), label: ""),
-            BottomNavigationBarItem(icon: Icon(Icons.crop_free), label: ""),
-            BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: ""),
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.edit_outlined),
+              label: "",
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.crop_free),
+              label: "",
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.smart_toy),
+              label: "",
+            ),
+            const BottomNavigationBarItem(
               icon: Icon(Icons.note_add_outlined),
               label: "",
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.delete_outline), label: ""),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.layers_outlined),
+              label: "",
+            ),
           ],
           onTap: (index) {
             if (seletedIndex != index) {

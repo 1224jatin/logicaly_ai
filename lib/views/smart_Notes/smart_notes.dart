@@ -22,6 +22,8 @@ class _SmartNotes extends State<SmartNotes> {
 
   final TextEditingController _inputController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  late final Stream<List<Map<String, dynamic>>> _notesStream;
+
   StudyFileResult? _uploadedFile;
   bool _isGenerating = false;
   bool _isReadingFile = false;
@@ -31,6 +33,7 @@ class _SmartNotes extends State<SmartNotes> {
   void initState() {
     super.initState();
     _initVoice();
+    _notesStream = _supabaseService.notesStream();
   }
 
   Future<void> _initVoice() async {
@@ -246,7 +249,7 @@ class _SmartNotes extends State<SmartNotes> {
               const SizedBox(height: 16),
 
               StreamBuilder<List<Map<String, dynamic>>>(
-                stream: _supabaseService.notesStream(),
+                stream: _notesStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());

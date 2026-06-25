@@ -106,8 +106,8 @@ class _OtpScreen extends State<OtpScreen> {
                   const SizedBox(height: 18),
 
                   Center(
-                    child: SvgPicture.asset(
-                      "assets/vectors/logo.svg",
+                    child: Image.asset(
+                      "assets/images/logo/logicaly_icon_logo_.png",
                       height: 150,
                     ),
                   ),

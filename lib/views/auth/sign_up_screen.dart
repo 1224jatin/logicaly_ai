@@ -40,8 +40,8 @@ class _SignUpScreen extends State<SignUpScreen> {
 
                 // Robot Logo
                 Center(
-                  child: SvgPicture.asset(
-                    "assets/vectors/logo.svg",
+                  child: Image.asset(
+                    "assets/images/logo/logicaly_icon_logo_.png",
                     height: 160,
                   ),
                 ),

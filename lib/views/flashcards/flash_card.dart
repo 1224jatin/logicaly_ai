@@ -13,14 +13,24 @@ class FlashCard extends StatefulWidget {
 }
 
 class _FlashCard extends State<FlashCard> {
+  static const String _flashcardsIconAsset =
+      "assets/images/icons/flashcards_icon.png";
+
   final AiService _aiService = AiService();
   final SupabaseService _supabaseService = SupabaseService();
   final StudyFileService _studyFileService = StudyFileService();
   final TextEditingController _aiInputController = TextEditingController();
 
+  late final Stream<List<FlashcardModel>> _flashcardsStream;
   StudyFileResult? _uploadedFile;
   bool _isGenerating = false;
   bool _isReadingFile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _flashcardsStream = _supabaseService.flashcardsStream();
+  }
 
   @override
   void dispose() {
@@ -114,7 +124,13 @@ class _FlashCard extends State<FlashCard> {
                   color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: const Icon(Icons.style, color: Colors.blue, size: 38),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Image.asset(
+                    _flashcardsIconAsset,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -396,7 +412,9 @@ class _FlashCard extends State<FlashCard> {
       }
       await _supabaseService.addActivity(
         title: "AI flashcards created",
-        subtitle: input.isEmpty ? uploadedFile?.fileName ?? "Uploaded file" : input,
+        subtitle: input.isEmpty
+            ? uploadedFile?.fileName ?? "Uploaded file"
+            : input,
       );
 
       _aiInputController.clear();

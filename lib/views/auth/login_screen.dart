@@ -41,8 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Robot Logo
                 Center(
-                  child: SvgPicture.asset(
-                    "assets/vectors/logo.svg",
+                  child: Image.asset(
+                    "assets/images/logo/logicaly_icon_logo_.png",
                     height: 160,
                   ),
                 ),
@@ -214,7 +214,6 @@ class _LoginScreenState extends State<LoginScreen> {
           content: TextField(
             controller: resetEmailController,
             keyboardType: TextInputType.emailAddress,
-            autofocus: true,
             decoration: const InputDecoration(
               labelText: "Email",
               hintText: "abcdfg@gmail.com",
@@ -236,17 +235,10 @@ class _LoginScreenState extends State<LoginScreen> {
       },
     );
 
+    // Dispose the local controller after the dialog is closed
     resetEmailController.dispose();
-    if (!mounted) {
-      return;
-    }
 
-    if (email == null) {
-      return;
-    }
-
-    if (email.isEmpty) {
-      _showSnackBar("Please enter your email address");
+    if (!mounted || email == null || email.isEmpty) {
       return;
     }
 

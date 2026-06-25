@@ -5,12 +5,9 @@ import 'package:logicaly_ai_project/models/ai_message_model.dart';
 import 'package:logicaly_ai_project/models/flashcard_model.dart';
 
 class AiService {
-  static const String _bundledGroqApiKey =
-      "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";
-  static const String _apiKey = String.fromEnvironment(
-    "GROQ_API_KEY",
-    defaultValue: _bundledGroqApiKey,
-  );
+  // Replace this value with your actual Groq API Key
+  static const String _apiKey = "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";
+
   static const String _chatModel = "llama-3.3-70b-versatile";
   static const String _visionModel = "llama-3.2-11b-vision-preview";
   static const String _endpoint =

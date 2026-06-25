@@ -3,12 +3,14 @@ class AiMessageModel {
   late String senderId;
   late String receiverId;
   late String message;
+  DateTime? createdAt;
 
   AiMessageModel({
     required this.messageId,
     required this.senderId,
     required this.receiverId,
     required this.message,
+    this.createdAt,
   });
 
   Map<String, dynamic> tojson() {
@@ -26,6 +28,9 @@ class AiMessageModel {
       senderId: json['senderId'] as String,
       receiverId: json['receiverId'] as String,
       message: json['message'] as String,
+      createdAt: json['createdAt'] != null 
+          ? DateTime.tryParse(json['createdAt'].toString()) 
+          : null,
     );
   }
 }

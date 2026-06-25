@@ -58,34 +58,43 @@ class MissingSupabaseConfigApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late final Stream<AuthState> _authStateStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _authStateStream = AuthService().authStateChanges;
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: AuthService().authStateChanges,
-      initialData: AuthState(
-        AuthChangeEvent.initialSession,
-        AuthService().currentUser == null
-            ? null
-            : Supabase.instance.client.auth.currentSession,
-      ),
+      stream: _authStateStream,
       builder: (context, snapshot) {
+        // 1. Handle password recovery state
         if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
           return const PasswordResetScreen();
         }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+        // 2. Determine if we have a valid session.
+        // We check the snapshot first, then fallback to the synchronous currentSession.
+        final session = snapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
 
-        if (AuthService().currentUser != null) {
+        if (session != null) {
           return const NavigationBarScreen();
         }
 
+        // 3. Fallback to Login screen if not authenticated.
+        // We don't need a waiting state here because Supabase.initialize was awaited in main(),
+        // so currentSession is already determined.
         return const LoginScreen();
       },
     );
