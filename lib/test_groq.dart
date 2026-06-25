@@ -4,9 +4,13 @@ import 'dart:convert';
 
 void main() {
   test('Test Groq API Connection', () async {
-    const apiKey = "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";
+    const apiKey = String.fromEnvironment("GROQ_API_KEY");
     const endpoint = "https://api.groq.com/openai/v1/chat/completions";
     const model = "llama-3.3-70b-versatile";
+
+    if (apiKey.isEmpty) {
+      fail("Missing GROQ_API_KEY. Run with --dart-define=GROQ_API_KEY=your_key.");
+    }
 
     try {
       print("Sending request to Groq...");

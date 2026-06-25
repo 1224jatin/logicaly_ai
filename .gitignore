@@ -33,6 +33,13 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local secrets
+.env
+.env.*
+*.env
+dart_defines.json
+*.dart-defines.json
+
 # Symbolication related
 app.*.symbols
 
