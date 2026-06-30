@@ -72,7 +72,10 @@ class _Profile extends State<Profile> {
                             ),
                           ),
                           IconButton(
-                            onPressed: _logout,
+                            onPressed: () {
+                              FocusScope.of(context).unfocus();
+                              _logout();
+                            },
                             icon: const Icon(Icons.logout),
                           ),
                         ],
@@ -188,7 +191,10 @@ class _Profile extends State<Profile> {
             ),
           ),
           IconButton(
-            onPressed: () => _editName(name),
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              _editName(name);
+            },
             icon: const Icon(Icons.edit_outlined),
           ),
         ],
@@ -217,7 +223,10 @@ class _Profile extends State<Profile> {
           ),
         ),
         IconButton(
-          onPressed: () => _editDailyGoal(dailyGoal),
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            _editDailyGoal(dailyGoal);
+          },
           icon: const Icon(Icons.edit_outlined),
         ),
       ],
@@ -288,6 +297,7 @@ class _Profile extends State<Profile> {
                 title: title,
                 subtitle: subtitle,
                 onTap: () {
+                  FocusScope.of(context).unfocus();
                   String? initialPrompt;
                   if (title == "Asked AI") {
                     initialPrompt = subtitle;
@@ -311,35 +321,10 @@ class _Profile extends State<Profile> {
   }
 
   Future<void> _editName(String currentName) async {
-    final controller = TextEditingController(text: currentName);
     final name = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Edit Name"),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(label: Text("Name")),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final name = controller.text.trim();
-              if (name.isEmpty) {
-                return;
-              }
-              FocusManager.instance.primaryFocus?.unfocus();
-              Navigator.pop(context, name);
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
+      builder: (context) => _EditNameDialog(currentName: currentName),
     );
-    controller.dispose();
 
     if (name == null || !mounted) {
       return;
@@ -350,36 +335,10 @@ class _Profile extends State<Profile> {
   }
 
   Future<void> _editDailyGoal(int currentGoal) async {
-    final controller = TextEditingController(text: currentGoal.toString());
     final minutes = await showDialog<int>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Daily Goal"),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(label: Text("Minutes")),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final minutes = int.tryParse(controller.text.trim());
-              if (minutes == null || minutes <= 0) {
-                return;
-              }
-              FocusManager.instance.primaryFocus?.unfocus();
-              Navigator.pop(context, minutes);
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
+      builder: (context) => _EditGoalDialog(currentGoal: currentGoal),
     );
-    controller.dispose();
 
     if (minutes == null || !mounted) {
       return;
@@ -391,16 +350,21 @@ class _Profile extends State<Profile> {
   }
 
   Future<void> _logout() async {
+    final navigator = Navigator.of(context);
+    // Unfocus to prevent highlight manager errors
+    FocusScope.of(context).unfocus();
+    
     await AuthService().signOut();
-    if (!mounted) {
-      return;
+    
+    if (mounted) {
+      // Return to the absolute root. AuthGate will already be showing LoginScreen.
+      // We use a post-frame callback to ensure the tree has stabilized.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (navigator.canPop()) {
+          navigator.popUntil((route) => route.isFirst);
+        }
+      });
     }
-    // Return to the root AuthGate
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const AuthGate()),
-      (route) => false,
-    );
   }
 
   Widget buildStatCard({
@@ -482,6 +446,117 @@ class _Profile extends State<Profile> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EditNameDialog extends StatefulWidget {
+  final String currentName;
+  const _EditNameDialog({required this.currentName});
+
+  @override
+  State<_EditNameDialog> createState() => _EditNameDialogState();
+}
+
+class _EditNameDialogState extends State<_EditNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Edit Name"),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(labelText: "Name"),
+        onSubmitted: (val) {
+          final name = val.trim();
+          if (name.isNotEmpty) Navigator.pop(context, name);
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final name = _controller.text.trim();
+            if (name.isNotEmpty) {
+              Navigator.pop(context, name);
+            }
+          },
+          child: const Text("Save"),
+        ),
+      ],
+    );
+  }
+}
+
+class _EditGoalDialog extends StatefulWidget {
+  final int currentGoal;
+  const _EditGoalDialog({required this.currentGoal});
+
+  @override
+  State<_EditGoalDialog> createState() => _EditGoalDialogState();
+}
+
+class _EditGoalDialogState extends State<_EditGoalDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentGoal.toString());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Daily Goal"),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(labelText: "Minutes"),
+        onSubmitted: (val) {
+          final minutes = int.tryParse(val.trim());
+          if (minutes != null && minutes > 0) Navigator.pop(context, minutes);
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final minutes = int.tryParse(_controller.text.trim());
+            if (minutes != null && minutes > 0) {
+              Navigator.pop(context, minutes);
+            }
+          },
+          child: const Text("Save"),
+        ),
+      ],
     );
   }
 }

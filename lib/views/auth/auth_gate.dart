@@ -5,13 +5,26 @@ import 'package:logicaly_ai_project/views/auth/password_reset_screen.dart';
 import 'package:logicaly_ai_project/views/navigation_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late final Stream<AuthState> _authStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _authStream = Supabase.instance.client.auth.onAuthStateChange;
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+      stream: _authStream,
       builder: (context, snapshot) {
         final session = Supabase.instance.client.auth.currentSession;
 
