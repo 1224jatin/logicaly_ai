@@ -188,12 +188,19 @@ class _ManualFlashcards extends State<ManualFlashcards> {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE3F2FD),
+            Color(0xFFF8FBFF),
+          ],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 8,
+            color: Colors.blue.withValues(alpha: 0.1),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -202,7 +209,11 @@ class _ManualFlashcards extends State<ManualFlashcards> {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1E3A8A),
+            ),
           ),
           Expanded(
             child: Center(
@@ -210,9 +221,10 @@ class _ManualFlashcards extends State<ManualFlashcards> {
                 text,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 20,
-                  height: 1.3,
+                  fontSize: 22,
+                  height: 1.4,
                   fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
               ),
             ),

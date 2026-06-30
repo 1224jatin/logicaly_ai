@@ -13,15 +13,15 @@ class FlashCard extends StatefulWidget {
 }
 
 class _FlashCard extends State<FlashCard> {
-  static const String _flashcardsIconAsset =
-      "assets/images/icons/flashcards_icon.png";
+  static const String _flashcardsIllustration =
+      "assets/images/icons/flashcards_illustration.png";
 
   final AiService _aiService = AiService();
   final SupabaseService _supabaseService = SupabaseService();
   final StudyFileService _studyFileService = StudyFileService();
   final TextEditingController _aiInputController = TextEditingController();
 
-  Stream<List<FlashcardModel>>? _flashcardsStream;
+  late final Stream<List<FlashcardModel>> _flashcardsStream;
   StudyFileResult? _uploadedFile;
   bool _isGenerating = false;
   bool _isReadingFile = false;
@@ -112,8 +112,22 @@ class _FlashCard extends State<FlashCard> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFE3F2FD),
+                Color(0xFFF8FBFF),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -127,7 +141,7 @@ class _FlashCard extends State<FlashCard> {
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: Image.asset(
-                    _flashcardsIconAsset,
+                    _flashcardsIllustration,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -144,6 +158,7 @@ class _FlashCard extends State<FlashCard> {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -165,7 +180,7 @@ class _FlashCard extends State<FlashCard> {
                           ),
                         );
                       },
-                icon: const Icon(Icons.arrow_forward_ios),
+                icon: Icon(Icons.arrow_forward_ios, color: Colors.blue.shade700),
               ),
             ],
           ),
