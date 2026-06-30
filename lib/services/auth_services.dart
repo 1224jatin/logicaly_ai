@@ -55,27 +55,8 @@ class AuthService {
       return response;
     }
 
-    try {
-      await _supabaseService.addUser(
-        UserModel(uId: user.id, userName: trimmedName, email: trimmedEmail),
-        uid: user.id,
-      );
-      await _supabaseService.addProfile(
-        ProfileModel(
-          uid: user.id,
-          name: trimmedName,
-          email: trimmedEmail,
-          streakDays: 0,
-          dailyGoalMinutes: 30,
-          completedMinutes: 0,
-          testsTaken: 0,
-          studyHours: 0,
-        ),
-        uid: user.id,
-      );
-    } catch (error) {
-      debugPrint("Supabase profile bootstrap failed: $error");
-    }
+    // Note: The SQL trigger 'on_auth_user_created' now handles 
+    // adding the user to public.users and public.profiles automatically.
 
     return response;
   }
@@ -88,8 +69,9 @@ class AuthService {
 }
 
 class OtpServices {
-  String generateOtp() {
-    return Random().nextInt(10000).toString().padLeft(4, '0');
+  String generateOtp({int length = 4}) {
+    final max = pow(10, length).toInt();
+    return Random().nextInt(max).toString().padLeft(length, '0');
   }
 
   Future<bool> sendOtp(String email, String generatedOtp) async {

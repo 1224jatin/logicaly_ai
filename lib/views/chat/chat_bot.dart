@@ -43,6 +43,7 @@ class _ChatBot extends State<ChatBot> {
     final initialPrompt = widget.initialPrompt;
     if (initialPrompt != null && initialPrompt.trim().isNotEmpty) {
       _messageController.text = initialPrompt.trim();
+
     }
   }
 
@@ -68,7 +69,7 @@ class _ChatBot extends State<ChatBot> {
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        "Logicaly AI",
+                        "Logiqly",
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ],

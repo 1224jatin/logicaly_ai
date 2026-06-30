@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:logicaly_ai_project/views/auth/auth_gate.dart';
 import 'package:logicaly_ai_project/views/auth/login_screen.dart';
 import 'package:logicaly_ai_project/views/auth/password_reset_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -267,34 +268,8 @@ class _OtpScreen extends State<OtpScreen> {
 
     setState(() => _isLoading = true);
 
-    if (widget.isPasswordReset) {
-      try {
-        await Supabase.instance.client.auth.signInWithOtp(
-          email: widget.email!,
-          shouldCreateUser: false,
-        );
-        _startTimer();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("A new reset code has been sent.")),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Failed to resend code: $e")),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
-      }
-      return;
-    }
-
     final otpService = OtpServices();
-    final newOtp = otpService.generateOtp();
+    final newOtp = otpService.generateOtp(length: widget.isPasswordReset ? 6 : 4);
     final success = await otpService.sendOtp(widget.email!, newOtp);
 
     setState(() => _isLoading = false);
@@ -304,7 +279,13 @@ class _OtpScreen extends State<OtpScreen> {
       _startTimer();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("A new OTP has been sent.")),
+          SnackBar(
+            content: Text(
+              widget.isPasswordReset
+                  ? "A new reset code has been sent."
+                  : "A new OTP has been sent.",
+            ),
+          ),
         );
       }
     } else {
@@ -319,48 +300,25 @@ class _OtpScreen extends State<OtpScreen> {
   Future<void> _verifyOtp() async {
     final enteredOtp = _controllers.map((controller) => controller.text).join();
 
-    if (widget.isPasswordReset) {
-      FocusScope.of(context).unfocus();
-      setState(() => _isLoading = true);
-      try {
-        final response = await Supabase.instance.client.auth.verifyOTP(
-          email: widget.email!,
-          token: enteredOtp,
-          type: OtpType.recovery,
-        );
-
-        if (response.session == null) {
-          throw Exception("Verification failed: Session not established.");
-        }
-
-        if (!mounted) return;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const PasswordResetScreen(),
-          ),
-        );
-      } catch (error) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_authErrorMessage(error))),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
-      }
-      return;
-    }
-
     final isVerified = OtpServices().verifyOtp(_currentOtp, enteredOtp);
 
     if (!isVerified && _currentOtp.isNotEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
+      return;
+    }
+
+    if (widget.isPasswordReset) {
+      FocusScope.of(context).unfocus();
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PasswordResetScreen(),
+        ),
+      );
       return;
     }
 
@@ -387,10 +345,10 @@ class _OtpScreen extends State<OtpScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          // Navigate back to the very beginning (AuthGate -> LoginScreen)
+          // Go back to the initial AuthGate which will show the LoginScreen
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
+            MaterialPageRoute(builder: (context) => const AuthGate()),
             (route) => false,
           );
         }

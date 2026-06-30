@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logicaly_ai_project/models/profile_model.dart';
 import 'package:logicaly_ai_project/services/auth_services.dart';
 import 'package:logicaly_ai_project/services/supabase_service.dart';
+import 'package:logicaly_ai_project/views/auth/auth_gate.dart';
 import 'package:logicaly_ai_project/views/auth/login_screen.dart';
 
 class Profile extends StatefulWidget {
@@ -350,9 +351,10 @@ class _Profile extends State<Profile> {
     if (!mounted) {
       return;
     }
+    // Return to the root AuthGate
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const AuthGate()),
       (route) => false,
     );
   }

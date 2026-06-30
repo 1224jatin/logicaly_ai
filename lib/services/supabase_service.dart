@@ -55,11 +55,7 @@ class SupabaseService {
         .stream(primaryKey: ["id"])
         .eq("user_id", userId);
     
-    // Note: Supabase realtime stream filtering is limited. 
-    // We will filter in the map function for better precision if needed,
-    // or just let the UI handle it.
-    
-    return query.order("created_at").map((rows) {
+    return query.order("created_at", ascending: true).map((rows) {
       final messages = rows
           .map((row) => AiMessageModel.fromJson(_normalizeMessage(row)))
           .toList();

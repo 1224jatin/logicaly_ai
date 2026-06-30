@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logicaly_ai_project/views/auth/sign_up_screen.dart';
 import 'package:logicaly_ai_project/views/auth/otp_screen.dart';
+import 'package:logicaly_ai_project/views/navigation_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_services.dart';
@@ -188,8 +189,16 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await AuthService().signIn(email: email, password: password);
-      // No manual navigation here. AuthGate handles it.
+      final response = await AuthService().signIn(email: email, password: password);
+      if (response.session != null) {
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const NavigationBarScreen()),
+            (route) => false,
+          );
+        }
+      }
     } catch (error) {
       if (mounted) {
         _showSnackBar(_authErrorMessage(error));
@@ -244,9 +253,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isResettingPassword = true);
     try {
-      await AuthService().sendPasswordResetEmail(email: email);
+      final otpServices = OtpServices();
+      final otp = otpServices.generateOtp(length: 6);
+      final sent = await otpServices.sendOtp(email, otp);
+
       if (!mounted) return;
-      _showSnackBar("Reset link sent to your email.");
+
+      if (sent) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpScreen(
+              sentOtp: otp,
+              email: email,
+              isPasswordReset: true,
+            ),
+          ),
+        );
+      } else {
+        _showSnackBar("Could not send reset code. Please try again.");
+      }
     } catch (error) {
       if (mounted) {
         _showSnackBar(_resetPasswordErrorMessage(error));
