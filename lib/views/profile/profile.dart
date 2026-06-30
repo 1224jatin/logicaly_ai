@@ -15,12 +15,13 @@ class Profile extends StatefulWidget {
 
 class _Profile extends State<Profile> {
   final SupabaseService _supabaseService = SupabaseService();
-  late final Stream<ProfileModel?> _profileStream;
-  late final Stream<List<Map<String, dynamic>>> _activityStream;
+  Stream<ProfileModel?>? _profileStream;
+  Stream<List<Map<String, dynamic>>>? _activityStream;
 
   @override
   void initState() {
     super.initState();
+    // Initialize streams here to ensure they are stable
     _profileStream = _supabaseService.currentProfileStream();
     _activityStream = _supabaseService.activityStream();
   }
@@ -32,116 +33,121 @@ class _Profile extends State<Profile> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          child: StreamBuilder<ProfileModel?>(
-            key: const ValueKey('profile_data_stream'),
-            stream: _profileStream,
-            builder: (context, snapshot) {
-              final user = AuthService().currentUser;
-              final profile = snapshot.data;
-              final name = profile?.name.isNotEmpty == true
-                  ? profile!.name
-                  : user?.userMetadata?["name"] as String? ?? "Student";
-              final email = profile?.email.isNotEmpty == true
-                  ? profile!.email
-                  : user?.email ?? "";
-              final dailyGoal = profile?.dailyGoalMinutes ?? 30;
-              final completed = profile?.completedMinutes ?? 0;
-              final streak = profile?.streakDays ?? 0;
-              final testsTaken = profile?.testsTaken ?? 0;
-              final studyHours = profile?.studyHours ?? 0;
-              final progress = dailyGoal == 0
-                  ? 0.0
-                  : (completed / dailyGoal).clamp(0.0, 1.0).toDouble();
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              StreamBuilder<ProfileModel?>(
+                key: const ValueKey('profile_data_block'),
+                stream: _profileStream,
+                builder: (context, snapshot) {
+                  final user = AuthService().currentUser;
+                  final profile = snapshot.data;
+                  final name = profile?.name.isNotEmpty == true
+                      ? profile!.name
+                      : user?.userMetadata?["name"] as String? ?? "Student";
+                  final email = profile?.email.isNotEmpty == true
+                      ? profile!.email
+                      : user?.email ?? "";
+                  final dailyGoal = profile?.dailyGoalMinutes ?? 30;
+                  final completed = profile?.completedMinutes ?? 0;
+                  final streak = profile?.streakDays ?? 0;
+                  final testsTaken = profile?.testsTaken ?? 0;
+                  final studyHours = profile?.studyHours ?? 0;
+                  final progress = dailyGoal == 0
+                      ? 0.0
+                      : (completed / dailyGoal).clamp(0.0, 1.0).toDouble();
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Profile",
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _logout,
-                        icon: const Icon(Icons.logout),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildProfileCard(name, email),
-                  const SizedBox(height: 26),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Your Progress",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const SizedBox(height: 10),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            "$streak Days Streak",
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontSize: 14,
+                          const Text(
+                            "Profile",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.local_fire_department,
-                            color: Colors.red,
-                            size: 20,
+                          IconButton(
+                            onPressed: _logout,
+                            icon: const Icon(Icons.logout),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _buildProfileCard(name, email),
+                      const SizedBox(height: 26),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Your Progress",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                "$streak Days Streak",
+                                style: const TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.local_fire_department,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _buildGoalEditor(dailyGoal),
+                      const SizedBox(height: 20),
+                      _buildDailyGoalCard(progress, completed, dailyGoal),
+                      const SizedBox(height: 22),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: buildStatCard(
+                              icon: Icons.auto_awesome,
+                              iconColor: Colors.purple,
+                              value: "$testsTaken",
+                              label: "Test Taken",
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: buildStatCard(
+                              icon: Icons.access_time,
+                              iconColor: Colors.blue,
+                              value: "${studyHours}h",
+                              label: "Time Spent",
+                            ),
                           ),
                         ],
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildGoalEditor(dailyGoal),
-                  const SizedBox(height: 20),
-                  _buildDailyGoalCard(progress, completed, dailyGoal),
-                  const SizedBox(height: 22),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: buildStatCard(
-                          icon: Icons.auto_awesome,
-                          iconColor: Colors.purple,
-                          value: "$testsTaken",
-                          label: "Test Taken",
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: buildStatCard(
-                          icon: Icons.access_time,
-                          iconColor: Colors.blue,
-                          value: "${studyHours}h",
-                          label: "Time Spent",
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  const Text(
-                    "Recent Activity",
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 18),
-                  _buildRecentActivity(),
-                  const SizedBox(height: 20),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+              const SizedBox(height: 28),
+              const Text(
+                "Recent Activity",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 18),
+              _buildRecentActivity(),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),
@@ -306,7 +312,7 @@ class _Profile extends State<Profile> {
 
   Future<void> _editName(String currentName) async {
     final controller = TextEditingController(text: currentName);
-    await showDialog<void>(
+    final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Edit Name"),
@@ -320,17 +326,13 @@ class _Profile extends State<Profile> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               final name = controller.text.trim();
               if (name.isEmpty) {
                 return;
               }
-              FocusScope.of(context).unfocus();
-              await AuthService().updateDisplayName(name);
-              await _supabaseService.updateCurrentProfile({"name": name});
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(context, name);
             },
             child: const Text("Save"),
           ),
@@ -338,11 +340,18 @@ class _Profile extends State<Profile> {
       ),
     );
     controller.dispose();
+
+    if (name == null || !mounted) {
+      return;
+    }
+
+    await AuthService().updateDisplayName(name);
+    await _supabaseService.updateCurrentProfile({"name": name});
   }
 
   Future<void> _editDailyGoal(int currentGoal) async {
     final controller = TextEditingController(text: currentGoal.toString());
-    await showDialog<void>(
+    final minutes = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Daily Goal"),
@@ -357,18 +366,13 @@ class _Profile extends State<Profile> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               final minutes = int.tryParse(controller.text.trim());
               if (minutes == null || minutes <= 0) {
                 return;
               }
-              FocusScope.of(context).unfocus();
-              await _supabaseService.updateCurrentProfile({
-                "dailyGoalMinutes": minutes,
-              });
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
+              FocusManager.instance.primaryFocus?.unfocus();
+              Navigator.pop(context, minutes);
             },
             child: const Text("Save"),
           ),
@@ -376,6 +380,14 @@ class _Profile extends State<Profile> {
       ),
     );
     controller.dispose();
+
+    if (minutes == null || !mounted) {
+      return;
+    }
+
+    await _supabaseService.updateCurrentProfile({
+      "dailyGoalMinutes": minutes,
+    });
   }
 
   Future<void> _logout() async {

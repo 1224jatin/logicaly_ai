@@ -325,6 +325,7 @@ class _ManualFlashcards extends State<ManualFlashcards> {
                   return;
                 }
 
+                final navigator = Navigator.of(context);
                 FocusScope.of(context).unfocus();
 
                 await _supabaseService.addFlashcard(
@@ -339,8 +340,8 @@ class _ManualFlashcards extends State<ManualFlashcards> {
                   subtitle: addQuestion.text.trim(),
                 );
 
-                if (context.mounted) {
-                  Navigator.pop(context);
+                if (mounted) {
+                  navigator.pop();
                 }
               },
               child: const Text("Add"),
