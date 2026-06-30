@@ -16,8 +16,16 @@ class _ManualFlashcards extends State<ManualFlashcards> {
   final TextEditingController addQuestion = TextEditingController();
   final TextEditingController addAnswer = TextEditingController();
 
+  Stream<List<FlashcardModel>>? _flashcardsStream;
+
   int currentCard = 0;
   bool showAnswer = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _flashcardsStream = _supabaseService.flashcardsStream();
+  }
 
   @override
   void dispose() {
@@ -39,7 +47,7 @@ class _ManualFlashcards extends State<ManualFlashcards> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: StreamBuilder<List<FlashcardModel>>(
-            stream: _supabaseService.flashcardsStream(),
+            stream: _flashcardsStream,
             builder: (context, snapshot) {
               final cards = snapshot.data ?? [];
               if (currentCard >= cards.length && cards.isNotEmpty) {
@@ -316,6 +324,8 @@ class _ManualFlashcards extends State<ManualFlashcards> {
                     addAnswer.text.trim().isEmpty) {
                   return;
                 }
+
+                FocusScope.of(context).unfocus();
 
                 await _supabaseService.addFlashcard(
                   FlashcardModel(

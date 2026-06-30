@@ -4,6 +4,7 @@ import 'package:logicaly_ai_project/services/auth_services.dart';
 import 'package:logicaly_ai_project/services/supabase_service.dart';
 import 'package:logicaly_ai_project/views/auth/auth_gate.dart';
 import 'package:logicaly_ai_project/views/auth/login_screen.dart';
+import 'package:logicaly_ai_project/views/chat/chat_bot.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -14,6 +15,15 @@ class Profile extends StatefulWidget {
 
 class _Profile extends State<Profile> {
   final SupabaseService _supabaseService = SupabaseService();
+  late final Stream<ProfileModel?> _profileStream;
+  late final Stream<List<Map<String, dynamic>>> _activityStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileStream = _supabaseService.currentProfileStream();
+    _activityStream = _supabaseService.activityStream();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +33,8 @@ class _Profile extends State<Profile> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: StreamBuilder<ProfileModel?>(
-            stream: _supabaseService.currentProfileStream(),
+            key: const ValueKey('profile_data_stream'),
+            stream: _profileStream,
             builder: (context, snapshot) {
               final user = AuthService().currentUser;
               final profile = snapshot.data;
@@ -249,7 +260,8 @@ class _Profile extends State<Profile> {
 
   Widget _buildRecentActivity() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _supabaseService.activityStream(),
+      key: const ValueKey('profile_activity_stream'),
+      stream: _activityStream,
       builder: (context, snapshot) {
         final activities = snapshot.data ?? [];
         if (activities.isEmpty) {
@@ -261,11 +273,29 @@ class _Profile extends State<Profile> {
 
         return Column(
           children: activities.map((activity) {
+            final title = activity["title"] as String? ?? "Activity";
+            final subtitle = activity["subtitle"] as String? ?? "";
+            
             return Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: buildActivityCard(
-                title: activity["title"] as String? ?? "Activity",
-                subtitle: activity["subtitle"] as String? ?? "Just now",
+                title: title,
+                subtitle: subtitle,
+                onTap: () {
+                  String? initialPrompt;
+                  if (title == "Asked AI") {
+                    initialPrompt = subtitle;
+                  } else if (title.contains("generated") || title.contains("created")) {
+                    initialPrompt = "Tell me more about the $title regarding: $subtitle";
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatBot(initialPrompt: initialPrompt),
+                    ),
+                  );
+                },
               ),
             );
           }).toList(),
@@ -295,6 +325,7 @@ class _Profile extends State<Profile> {
               if (name.isEmpty) {
                 return;
               }
+              FocusScope.of(context).unfocus();
               await AuthService().updateDisplayName(name);
               await _supabaseService.updateCurrentProfile({"name": name});
               if (context.mounted) {
@@ -331,6 +362,7 @@ class _Profile extends State<Profile> {
               if (minutes == null || minutes <= 0) {
                 return;
               }
+              FocusScope.of(context).unfocus();
               await _supabaseService.updateCurrentProfile({
                 "dailyGoalMinutes": minutes,
               });
@@ -390,45 +422,53 @@ class _Profile extends State<Profile> {
     );
   }
 
-  Widget buildActivityCard({required String title, required String subtitle}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(10),
+  Widget buildActivityCard({
+    required String title,
+    required String subtitle,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.menu_book_outlined),
             ),
-            child: const Icon(Icons.menu_book_outlined),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.black54, fontSize: 13),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.black54, fontSize: 13),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black54),
-        ],
+            const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.black54),
+          ],
+        ),
       ),
     );
   }

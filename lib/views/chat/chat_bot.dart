@@ -23,7 +23,7 @@ class _ChatBot extends State<ChatBot> {
   
   // Track when the current app session started to hide previous chats
   static final DateTime _sessionStartTime = DateTime.now();
-  late Stream<List<AiMessageModel>> _messagesStream;
+  Stream<List<AiMessageModel>>? _messagesStream;
   
   bool _isSending = false;
   bool _isListening = false;
@@ -149,41 +149,46 @@ class _ChatBot extends State<ChatBot> {
   }
 
   Widget _buildEmptyState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          "How can I help you?",
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "How can I help you?",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 25),
+            Icon(Icons.smart_toy, size: 90, color: Colors.grey.shade300),
+            const SizedBox(height: 35),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildSuggestionButton(
+                    icon: Icons.picture_as_pdf,
+                    text: "PDF/Notes",
+                    iconColor: Colors.red,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildSuggestionButton(
+                    icon: Icons.auto_awesome,
+                    text: "Summarize text",
+                    iconColor: Colors.blue,
+                  ),
+                  const SizedBox(height: 10),
+                  _buildSuggestionButton(
+                    icon: Icons.edit,
+                    text: "Assignment edit",
+                    iconColor: Colors.green,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 25),
-        Icon(Icons.smart_toy, size: 90, color: Colors.grey.shade300),
-        const SizedBox(height: 35),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Column(
-            children: [
-              _buildSuggestionButton(
-                icon: Icons.picture_as_pdf,
-                text: "PDF/Notes",
-                iconColor: Colors.red,
-              ),
-              const SizedBox(height: 10),
-              _buildSuggestionButton(
-                icon: Icons.auto_awesome,
-                text: "Summarize text",
-                iconColor: Colors.blue,
-              ),
-              const SizedBox(height: 10),
-              _buildSuggestionButton(
-                icon: Icons.edit,
-                text: "Assignment edit",
-                iconColor: Colors.green,
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logicaly_ai_project/models/profile_model.dart';
 import 'package:logicaly_ai_project/models/user_model.dart';
+import 'package:logicaly_ai_project/services/secrets.dart';
 import 'package:logicaly_ai_project/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -75,9 +76,9 @@ class OtpServices {
   }
 
   Future<bool> sendOtp(String email, String generatedOtp) async {
-    const serviceId = "service_tv62p4p";
-    const temId = "template_fl5vsv8";
-    const publicKey = "kCOen-_5UnHKUUCU1";
+    const serviceId = Secrets.emailJsServiceId;
+    const temId = Secrets.emailJsTemplateId;
+    const publicKey = Secrets.emailJsPublicKey;
 
     final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
 

@@ -39,6 +39,7 @@ migrate_working_dir/
 *.env
 dart_defines.json
 *.dart-defines.json
+lib/services/secrets.dart
 
 # Symbolication related
 app.*.symbols

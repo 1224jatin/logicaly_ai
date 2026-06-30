@@ -21,7 +21,7 @@ class _FlashCard extends State<FlashCard> {
   final StudyFileService _studyFileService = StudyFileService();
   final TextEditingController _aiInputController = TextEditingController();
 
-  late final Stream<List<FlashcardModel>> _flashcardsStream;
+  Stream<List<FlashcardModel>>? _flashcardsStream;
   StudyFileResult? _uploadedFile;
   bool _isGenerating = false;
   bool _isReadingFile = false;
@@ -105,7 +105,7 @@ class _FlashCard extends State<FlashCard> {
 
   Widget _buildDeckSummary() {
     return StreamBuilder<List<FlashcardModel>>(
-      stream: _supabaseService.flashcardsStream(),
+      stream: _flashcardsStream,
       builder: (context, snapshot) {
         final cards = snapshot.data ?? [];
         return Container(
@@ -296,7 +296,7 @@ class _FlashCard extends State<FlashCard> {
 
   Widget _buildRecentCards() {
     return StreamBuilder<List<FlashcardModel>>(
-      stream: _supabaseService.flashcardsStream(),
+      stream: _flashcardsStream,
       builder: (context, snapshot) {
         final cards = snapshot.data ?? [];
         if (cards.isEmpty) {

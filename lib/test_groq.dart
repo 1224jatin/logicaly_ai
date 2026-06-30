@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:logicaly_ai_project/services/secrets.dart';
 
 void main() {
   test('Test Groq API Connection', () async {
-    const rawApiKey = String.fromEnvironment("GROQ_API_KEY");
+    const envApiKey = String.fromEnvironment("GROQ_API_KEY");
+    final rawApiKey = envApiKey.isNotEmpty ? envApiKey : Secrets.groqApiKey;
     final apiKey = _normalizedApiKey(rawApiKey);
     const endpoint = "https://api.groq.com/openai/v1/chat/completions";
     const model = "llama-3.3-70b-versatile";

@@ -22,7 +22,7 @@ class _SmartNotes extends State<SmartNotes> {
 
   final TextEditingController _inputController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  late final Stream<List<Map<String, dynamic>>> _notesStream;
+  Stream<List<Map<String, dynamic>>>? _notesStream;
 
   StudyFileResult? _uploadedFile;
   bool _isGenerating = false;

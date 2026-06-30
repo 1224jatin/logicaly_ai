@@ -37,39 +37,49 @@ class _NavigationBarScreen extends State<NavigationBarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: _history.length <= 1,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        _onWillPop();
+      },
       child: Scaffold(
-        body: navigationScreens[seletedIndex],
+        body: IndexedStack(
+          index: seletedIndex,
+          children: navigationScreens,
+        ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: seletedIndex,
           selectedItemColor: Colors.blue,
           unselectedItemColor: Colors.black54,
           type: BottomNavigationBarType.fixed,
-          items: [
-            const BottomNavigationBarItem(
+          items: const [
+            BottomNavigationBarItem(
               icon: Icon(Icons.edit_outlined),
-              label: "",
+              label: "Notes",
             ),
-            const BottomNavigationBarItem(
+            BottomNavigationBarItem(
               icon: Icon(Icons.crop_free),
-              label: "",
+              label: "Scan",
             ),
-            const BottomNavigationBarItem(
+            BottomNavigationBarItem(
               icon: Icon(Icons.smart_toy),
-              label: "",
+              label: "AI Chat",
             ),
-            const BottomNavigationBarItem(
+            BottomNavigationBarItem(
               icon: Icon(Icons.note_add_outlined),
-              label: "",
+              label: "Tests",
             ),
-            const BottomNavigationBarItem(
+            BottomNavigationBarItem(
               icon: Icon(Icons.layers_outlined),
-              label: "",
+              label: "Cards",
             ),
           ],
           onTap: (index) {
             if (seletedIndex != index) {
+              // Dismiss keyboard to prevent 'dirty widget' errors during transition
+              FocusScope.of(context).unfocus();
+
               setState(() {
                 seletedIndex = index;
                 _history.remove(index);

@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logicaly_ai_project/models/ai_message_model.dart';
 import 'package:logicaly_ai_project/models/flashcard_model.dart';
+import 'package:logicaly_ai_project/services/secrets.dart';
 
 class AiService {
-  static const String _rawApiKey = String.fromEnvironment("GROQ_API_KEY");
+  static const String _envApiKey = String.fromEnvironment("GROQ_API_KEY");
+  static String get _rawApiKey => _envApiKey.isNotEmpty ? _envApiKey : Secrets.groqApiKey;
 
   static const String _chatModel = "llama-3.3-70b-versatile";
   static const String _visionModel = "meta-llama/llama-4-scout-17b-16e-instruct";
