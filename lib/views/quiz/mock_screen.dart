@@ -479,6 +479,7 @@ class _MockTestScreen extends State<MockTestScreen> {
     try {
       final file = await _studyFileService.pickStudyFile();
       if (file == null) {
+        _showSnackBar("No file selected");
         return;
       }
       if (!mounted) {
@@ -525,9 +526,11 @@ class _MockTestScreen extends State<MockTestScreen> {
         _generatedTest = null;
         _isGeneratedTestSaved = false;
       });
-      _showSnackBar("File added to study material");
+      _showSnackBar(
+        "File added to study material. Max ${StudyFileService.maxPdfPages} PDF pages allowed.",
+      );
     } catch (error) {
-      _showSnackBar("Could not upload file: $error");
+      _showSnackBar(_friendlyError("Could not upload file", error));
     } finally {
       if (mounted) {
         setState(() => _isReadingFile = false);
@@ -628,7 +631,7 @@ class _MockTestScreen extends State<MockTestScreen> {
         unawaited(_saveGeneratedTestSilently(fallbackTest));
         return;
       }
-      _showSnackBar("Could not generate test: $error");
+      _showSnackBar(_friendlyError("Could not generate test", error));
     } finally {
       if (mounted) {
         setState(() => _isGenerating = false);
@@ -770,8 +773,33 @@ Coding Approach Hints
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+  }
+
+  String _friendlyError(String prefix, Object error) {
+    final message = error.toString().replaceFirst("Exception: ", "").trim();
+    if (message.isEmpty) {
+      return "$prefix. Please try again.";
+    }
+
+    final lower = message.toLowerCase();
+    if (lower.contains("request too large") ||
+        lower.contains("tokens per minute") ||
+        lower.contains("413")) {
+      return "$prefix: uploaded content is too large. Use a PDF with 2 pages or less.";
+    }
+
+    if (message.length > 120) {
+      return "$prefix. Please try again with shorter content.";
+    }
+    return "$prefix: $message";
   }
 }

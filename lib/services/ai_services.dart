@@ -7,17 +7,26 @@ import 'package:logicaly_ai_project/services/secrets.dart';
 
 class AiService {
   static const String _envApiKey = String.fromEnvironment("GROQ_API_KEY");
-  static String get _rawApiKey => _envApiKey.isNotEmpty ? _envApiKey : Secrets.groqApiKey;
+  static String get _rawApiKey =>
+      _envApiKey.isNotEmpty ? _envApiKey : Secrets.groqApiKey;
 
   static const String _chatModel = "llama-3.3-70b-versatile";
   static const String _visionModel = "meta-llama/llama-4-scout-17b-16e-instruct";
   static const String _endpoint =
       "https://api.groq.com/openai/v1/chat/completions";
+  static const int _maxStudyInputChars = 10000;
+  static const int _maxChatInputChars = 12000;
 
   Future<String> askChat({
     required String userMessage,
     List<AiMessageModel> history = const [],
   }) async {
+    final safeUserMessage = _fitTextToBudget(
+      userMessage,
+      _maxChatInputChars,
+      notice:
+          "The message was shortened to fit the AI request limit. Answer using the available parts.",
+    );
     final recentHistory = history.length > 12
         ? history.sublist(history.length - 12)
         : history;
@@ -33,24 +42,25 @@ class AiService {
               "content": message.message,
             },
           ),
-      {"role": "user", "content": userMessage},
+      {"role": "user", "content": safeUserMessage},
     ];
 
     return _createChatCompletion(messages: messages, maxTokens: 900);
   }
 
   Future<String> generateNotes(String input) {
+    final studyInput = _prepareStudyInput(input);
     return _createChatCompletion(
       maxTokens: 1200,
       messages: [
         {
           "role": "system",
           "content":
-              "Create polished study notes. Use short sections, bullet points, definitions, examples, and a quick revision checklist.",
+              "Create polished study notes. Use short sections, bullet points, definitions, examples, and a quick revision checklist. If the source says it was condensed, mention that the notes are based on the available extracted sections.",
         },
         {
           "role": "user",
-          "content": "Generate smart notes from this topic or raw text:\n$input",
+          "content": "Generate smart notes from this topic or raw text:\n$studyInput",
         },
       ],
     );
@@ -95,6 +105,7 @@ class AiService {
     required String questionCount,
     required bool focusWeakAreas,
   }) {
+    final studyInput = _prepareStudyInput(syllabus);
     return _createChatCompletion(
       maxTokens: 2200,
       messages: [
@@ -106,7 +117,7 @@ class AiService {
         {
           "role": "user",
           "content":
-              "Create a mock test from this material:\n$syllabus\n\nPreferences:\nDifficulty: $difficulty\nTest type: $testType\nDuration: $duration\nNumber of questions: $questionCount\nFocus weak areas: ${focusWeakAreas ? "yes" : "no"}",
+              "Create a mock test from this material:\n$studyInput\n\nPreferences:\nDifficulty: $difficulty\nTest type: $testType\nDuration: $duration\nNumber of questions: $questionCount\nFocus weak areas: ${focusWeakAreas ? "yes" : "no"}",
         },
       ],
     );
@@ -153,6 +164,7 @@ class AiService {
   }
 
   Future<List<FlashcardModel>> generateFlashcards(String input) async {
+    final studyInput = _prepareStudyInput(input);
     final response = await _createChatCompletion(
       maxTokens: 1400,
       responseFormat: {"type": "json_object"},
@@ -162,7 +174,7 @@ class AiService {
           "content":
               "Return only valid JSON with this shape: {\"flashcards\":[{\"question\":\"...\",\"answer\":\"...\"}]}. Create 8 to 12 concise study flashcards.",
         },
-        {"role": "user", "content": input},
+        {"role": "user", "content": studyInput},
       ],
     );
 
@@ -257,7 +269,7 @@ class AiService {
           "model": model,
           "messages": messages,
           "temperature": 0.4,
-          "max_completion_tokens": maxTokens,
+          "max_tokens": maxTokens,
           if (responseFormat != null) "response_format": responseFormat,
         }),
       );
@@ -266,11 +278,15 @@ class AiService {
         throw AiServiceException(
           "Invalid or expired Groq API key. Rebuild the APK with GROQ_API_KEY and make sure the key is active.",
         );
+      } else if (response.statusCode == 413) {
+        throw AiServiceException(
+          "The uploaded content is too large for AI. Use a PDF with 2 pages or less, or shorten the text.",
+        );
       } else if (response.statusCode == 429) {
         throw AiServiceException("Rate limit reached. Please wait a moment.");
       } else if (response.statusCode != 200) {
         throw AiServiceException(
-          "Groq request failed (${response.statusCode}): ${response.body}",
+          _friendlyGroqError(response.statusCode, response.body),
         );
       }
 
@@ -294,12 +310,78 @@ class AiService {
   }
 
   String get _normalizedApiKey {
-    final trimmed = _rawApiKey.trim();
+    var trimmed = _rawApiKey.trim();
+    const definePrefix = "GROQ_API_KEY=";
+    final defineIndex = trimmed.indexOf(definePrefix);
+    if (defineIndex != -1) {
+      trimmed = trimmed.substring(defineIndex + definePrefix.length).trim();
+    }
     if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
         (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-      return trimmed.substring(1, trimmed.length - 1).trim();
+      trimmed = trimmed.substring(1, trimmed.length - 1).trim();
     }
-    return trimmed;
+    return trimmed.replaceAll(RegExp(r"\s+"), "");
+  }
+
+  String _prepareStudyInput(String input) {
+    return _fitTextToBudget(
+      input,
+      _maxStudyInputChars,
+      notice:
+          "The source text was shortened to fit the AI request limit. Use only the available content.",
+    );
+  }
+
+  String _fitTextToBudget(
+    String input,
+    int maxChars, {
+    required String notice,
+  }) {
+    final compact = input.replaceAll(RegExp(r"\n{3,}"), "\n\n").trim();
+    if (compact.length <= maxChars) {
+      return compact;
+    }
+
+    final headLength = (maxChars * 0.7).floor();
+    final tailLength = maxChars - headLength;
+    final head = compact.substring(0, headLength).trim();
+    final tail = compact.substring(compact.length - tailLength).trim();
+    return "$notice\n\n$head\n\n[Middle content removed to fit request size.]\n\n$tail";
+  }
+
+  String _friendlyGroqError(int statusCode, String responseBody) {
+    final providerMessage = _extractProviderMessage(responseBody);
+    if (providerMessage.contains("rate_limit") ||
+        providerMessage.contains("tokens per minute") ||
+        providerMessage.contains("request too large")) {
+      return "The AI request is too large right now. Shorten the text or upload a PDF with 2 pages or less.";
+    }
+
+    if (providerMessage.contains("api key") ||
+        providerMessage.contains("invalid api key") ||
+        providerMessage.contains("unauthorized")) {
+      return "Groq API key is invalid. Rebuild the app with a valid GROQ_API_KEY.";
+    }
+
+    return "AI request failed ($statusCode). Please try again.";
+  }
+
+  String _extractProviderMessage(String responseBody) {
+    try {
+      final decoded = jsonDecode(responseBody);
+      if (decoded is Map<String, dynamic>) {
+        final error = decoded["error"];
+        if (error is Map<String, dynamic>) {
+          final message = error["message"];
+          if (message is String) {
+            return message.toLowerCase();
+          }
+        }
+      }
+    } catch (_) {
+      // Fall back to a short lowercase body check below.
+    }
+    return responseBody.toLowerCase();
   }
 
   String _extractJson(String value) {

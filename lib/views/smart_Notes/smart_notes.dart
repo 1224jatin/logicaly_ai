@@ -468,8 +468,10 @@ class _SmartNotes extends State<SmartNotes> {
                 const SizedBox(height: 2),
                 Text(
                   uploadedFile == null
-                      ? "82 pages - 1.9 MB - PDF"
-                      : "${uploadedFile.isImage ? "Image" : "PDF"} - ${uploadedFile.fileName.split('.').last.toUpperCase()}",
+                      ? "No PDF uploaded"
+                      : uploadedFile.isImage
+                      ? "Image"
+                      : "${uploadedFile.pageCount ?? 0} page${uploadedFile.pageCount == 1 ? "" : "s"} - PDF",
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
@@ -510,7 +512,7 @@ class _SmartNotes extends State<SmartNotes> {
         subtitle: input.isEmpty ? uploadedFile?.fileName ?? "Uploaded file" : input,
       );
     } catch (error) {
-      _showSnackBar("Could not generate notes: $error");
+      _showSnackBar(_friendlyError("Could not generate notes", error));
     } finally {
       if (mounted) {
         setState(() => _isGenerating = false);
@@ -523,6 +525,7 @@ class _SmartNotes extends State<SmartNotes> {
     try {
       final file = await _studyFileService.pickStudyFile();
       if (file == null) {
+        _showSnackBar("No file selected");
         return;
       }
 
@@ -540,11 +543,11 @@ class _SmartNotes extends State<SmartNotes> {
         file.isImage
             ? "Image uploaded"
             : file.hasReadableText
-            ? "File text added"
+            ? "PDF text added. Max ${StudyFileService.maxPdfPages} pages allowed."
             : "File selected, but paste notes too",
       );
     } catch (error) {
-      _showSnackBar("Could not upload file: $error");
+      _showSnackBar(_friendlyError("Could not upload file", error));
     } finally {
       if (mounted) {
         setState(() => _isReadingFile = false);
@@ -572,9 +575,37 @@ class _SmartNotes extends State<SmartNotes> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+  }
+
+  String _friendlyError(String prefix, Object error) {
+    final message = error.toString().replaceFirst("Exception: ", "").trim();
+    if (message.isEmpty) {
+      return "$prefix. Please try again.";
+    }
+
+    final lower = message.toLowerCase();
+    if (lower.contains("request too large") ||
+        lower.contains("tokens per minute") ||
+        lower.contains("413")) {
+      return "$prefix: uploaded content is too large. Use a PDF with 2 pages or less.";
+    }
+
+    if (message.length > 120) {
+      return "$prefix. Please try again with shorter content.";
+    }
+    return "$prefix: $message";
   }
 
   void _askAiAboutNotes() {

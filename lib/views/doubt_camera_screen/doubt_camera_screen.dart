@@ -372,9 +372,8 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>
 
       final controller = CameraController(
         selectedCamera,
-        ResolutionPreset.high,
+        ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
       );
       _cameraController = controller;
       await controller.initialize();
@@ -386,7 +385,7 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>
     } catch (error) {
       if (mounted) {
         setState(() => _isCameraLoading = false);
-        _showSnackBar("Could not start camera: $error");
+        _showSnackBar(_friendlyCameraError(error));
       }
     }
   }
@@ -430,7 +429,7 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>
         _answer = null;
       });
     } catch (error) {
-      _showSnackBar("Could not capture image: $error");
+      _showSnackBar("Could not capture image. Please try again.");
     } finally {
       if (mounted) {
         setState(() {
@@ -462,7 +461,7 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>
         _answer = null;
       });
     } catch (error) {
-      _showSnackBar("Could not pick image: $error");
+      _showSnackBar("Could not pick image. Please try again.");
     }
   }
 
@@ -491,7 +490,7 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>
         setState(() => _answer = answer);
       }
     } catch (error) {
-      _showSnackBar("Could not solve doubt: $error");
+      _showSnackBar(_friendlyError("Could not solve doubt", error));
     } finally {
       if (mounted) {
         setState(() => _isSolving = false);
@@ -630,9 +629,36 @@ class _DoubtCameraScreen extends State<DoubtCameraScreen>
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+  }
+
+  String _friendlyCameraError(Object error) {
+    final message = error.toString().toLowerCase();
+    if (message.contains("surface") ||
+        message.contains("camera") ||
+        message.contains("use case")) {
+      return "Could not start camera. Close other camera apps or use gallery upload.";
+    }
+    return "Could not start camera. Use gallery upload or try again.";
+  }
+
+  String _friendlyError(String prefix, Object error) {
+    final message = error.toString().replaceFirst("Exception: ", "").trim();
+    if (message.isEmpty) {
+      return "$prefix. Please try again.";
+    }
+    if (message.length > 120) {
+      return "$prefix. Please try again with a clearer or smaller image.";
+    }
+    return "$prefix: $message";
   }
 
   // ---------------- CAMERA ICON ----------------

@@ -10,12 +10,14 @@ class StudyFileResult {
   final String mimeType;
   final String text;
   final Uint8List? imageBytes;
+  final int? pageCount;
 
   const StudyFileResult({
     required this.fileName,
     required this.mimeType,
     required this.text,
     required this.imageBytes,
+    this.pageCount,
   });
 
   bool get hasReadableText => text.trim().isNotEmpty;
@@ -23,6 +25,9 @@ class StudyFileResult {
 }
 
 class StudyFileService {
+  static const int maxPdfPages = 2;
+  static const int _maxExtractedTextChars = 12000;
+
   Future<StudyFileResult?> pickStudyFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.any,
@@ -54,12 +59,16 @@ class StudyFileService {
         mimeType: mimeType,
         text: "",
         imageBytes: bytes,
+        pageCount: null,
       );
     }
 
     String extractedText = "";
+    int? pageCount;
     if (extension == "pdf" || mimeType == "application/pdf") {
-      extractedText = _extractTextFromPdf(bytes);
+      final pdfText = _extractTextFromPdf(bytes);
+      pageCount = pdfText.pageCount;
+      extractedText = pdfText.text;
     } else {
       extractedText = _extractReadableText(bytes);
     }
@@ -69,17 +78,32 @@ class StudyFileService {
       mimeType: mimeType,
       text: extractedText,
       imageBytes: null,
+      pageCount: pageCount,
     );
   }
 
-  String _extractTextFromPdf(Uint8List bytes) {
+  _PdfTextResult _extractTextFromPdf(Uint8List bytes) {
+    PdfDocument? document;
     try {
-      final PdfDocument document = PdfDocument(inputBytes: bytes);
-      final String text = PdfTextExtractor(document).extractText();
-      document.dispose();
-      return text;
+      document = PdfDocument(inputBytes: bytes);
+      final pageCount = document.pages.count;
+      if (pageCount > maxPdfPages) {
+        throw StudyFileException(
+          "PDF upload limit is $maxPdfPages pages. Please choose a shorter PDF.",
+        );
+      }
+
+      final text = PdfTextExtractor(document).extractText();
+      return _PdfTextResult(
+        text: _limitText(text),
+        pageCount: pageCount,
+      );
+    } on StudyFileException {
+      rethrow;
     } catch (e) {
-      return "";
+      return const _PdfTextResult(text: "", pageCount: null);
+    } finally {
+      document?.dispose();
     }
   }
 
@@ -179,8 +203,27 @@ class StudyFileService {
       return "";
     }
 
-    return text;
+    return _limitText(text);
   }
+
+  String _limitText(String value) {
+    final trimmed = value.trim();
+    if (trimmed.length <= _maxExtractedTextChars) {
+      return trimmed;
+    }
+
+    return "${trimmed.substring(0, _maxExtractedTextChars).trim()}\n\n[Only the first $_maxExtractedTextChars characters were added to keep AI requests within the app limit.]";
+  }
+}
+
+class _PdfTextResult {
+  final String text;
+  final int? pageCount;
+
+  const _PdfTextResult({
+    required this.text,
+    required this.pageCount,
+  });
 }
 
 class StudyFileException implements Exception {

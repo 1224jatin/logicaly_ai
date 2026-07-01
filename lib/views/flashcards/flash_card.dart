@@ -367,6 +367,7 @@ class _FlashCard extends State<FlashCard> {
     try {
       final file = await _studyFileService.pickStudyFile();
       if (file == null) {
+        _showSnackBar("No file selected");
         return;
       }
 
@@ -384,11 +385,11 @@ class _FlashCard extends State<FlashCard> {
         file.isImage
             ? "Image uploaded"
             : file.hasReadableText
-            ? "File text added"
+            ? "File text added. Max ${StudyFileService.maxPdfPages} PDF pages allowed."
             : "File selected, but paste notes too",
       );
     } catch (error) {
-      _showSnackBar("Could not upload file: $error");
+      _showSnackBar(_friendlyError("Could not upload file", error));
     } finally {
       if (mounted) {
         setState(() => _isReadingFile = false);
@@ -444,7 +445,7 @@ class _FlashCard extends State<FlashCard> {
         );
       }
     } catch (error) {
-      _showSnackBar("Could not create flashcards: $error");
+      _showSnackBar(_friendlyError("Could not create flashcards", error));
     } finally {
       if (mounted) {
         setState(() => _isGenerating = false);
@@ -504,8 +505,33 @@ class _FlashCard extends State<FlashCard> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+  }
+
+  String _friendlyError(String prefix, Object error) {
+    final message = error.toString().replaceFirst("Exception: ", "").trim();
+    if (message.isEmpty) {
+      return "$prefix. Please try again.";
+    }
+
+    final lower = message.toLowerCase();
+    if (lower.contains("request too large") ||
+        lower.contains("tokens per minute") ||
+        lower.contains("413")) {
+      return "$prefix: uploaded content is too large. Use a PDF with 2 pages or less.";
+    }
+
+    if (message.length > 120) {
+      return "$prefix. Please try again with shorter content.";
+    }
+    return "$prefix: $message";
   }
 }

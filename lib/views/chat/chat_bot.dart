@@ -20,9 +20,10 @@ class _ChatBot extends State<ChatBot> {
   final AiService _aiService = AiService();
   final VoiceService _voiceService = VoiceService();
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   
   // Track when the current app session started to hide previous chats
-  static final DateTime _sessionStartTime = DateTime.now();
+  static final DateTime _sessionStartTime = DateTime.now().subtract(const Duration(seconds: 5));
   Stream<List<AiMessageModel>>? _messagesStream;
   
   bool _isSending = false;
@@ -33,6 +34,7 @@ class _ChatBot extends State<ChatBot> {
   void dispose() {
     _voiceService.stopListening();
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -43,7 +45,16 @@ class _ChatBot extends State<ChatBot> {
     final initialPrompt = widget.initialPrompt;
     if (initialPrompt != null && initialPrompt.trim().isNotEmpty) {
       _messageController.text = initialPrompt.trim();
+    }
+  }
 
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -97,43 +108,26 @@ class _ChatBot extends State<ChatBot> {
                   stream: _messagesStream,
                   builder: (context, snapshot) {
                     final messages = snapshot.data ?? [];
-                    if (messages.isEmpty) {
+                    if (messages.isEmpty && snapshot.connectionState != ConnectionState.waiting) {
                       return _buildEmptyState();
                     }
 
+                    if (messages.isNotEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+                    }
+
                     return ListView.builder(
-                      itemCount: messages.length,
+                      controller: _scrollController,
+                      padding: const EdgeInsets.only(bottom: 20),
+                      itemCount: messages.length + (_isSending ? 1 : 0),
                       itemBuilder: (context, index) {
+                        if (index == messages.length) {
+                          return _buildTypingIndicator();
+                        }
+                        
                         final message = messages[index];
                         final isUser = message.senderId != "ai";
-                        return Align(
-                          alignment: isUser
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            constraints: BoxConstraints(
-                              maxWidth:
-                                  MediaQuery.of(context).size.width * 0.75,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isUser
-                                  ? const Color(0xFF3563E9)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              message.message,
-                              style: TextStyle(
-                                color: isUser ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                          ),
-                        );
+                        return _buildChatBubble(message.message, isUser);
                       },
                     );
                   },
@@ -143,6 +137,80 @@ class _ChatBot extends State<ChatBot> {
               const SizedBox(height: 15),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatBubble(String text, bool isUser) {
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isUser ? const Color(0xFF3563E9) : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isUser ? 16 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 16),
+          ),
+          boxShadow: [
+            if (!isUser)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isUser ? Colors.white : Colors.black87,
+            fontSize: 15,
+            height: 1.4,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypingIndicator() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("AI is thinking", style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.blue.shade300,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -362,8 +430,14 @@ class _ChatBot extends State<ChatBot> {
 
     _messageController.clear();
     setState(() => _isSending = true);
+    
+    // Smooth scroll to bottom immediately after user sends
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
     try {
       final history = await _supabaseService.getMessages();
+      
+      // Save User Message
       await _supabaseService.addMessage(
         AiMessageModel(
           messageId: "",
@@ -372,11 +446,14 @@ class _ChatBot extends State<ChatBot> {
           message: text,
         ),
       );
+
+      // Get AI Response
       final aiReply = await _aiService.askChat(
         userMessage: text,
         history: history,
       );
 
+      // Save AI Response
       await _supabaseService.addMessage(
         AiMessageModel(
           messageId: "",
@@ -385,16 +462,19 @@ class _ChatBot extends State<ChatBot> {
           message: aiReply,
         ),
       );
+      
       await _supabaseService.addActivity(title: "Asked AI", subtitle: text);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Could not generate reply: $error")),
+          SnackBar(content: Text("AI Error: $error")),
         );
       }
     } finally {
       if (mounted) {
         setState(() => _isSending = false);
+        // Scroll again after loading finishes
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       }
     }
   }
